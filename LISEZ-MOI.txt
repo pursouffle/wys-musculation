@@ -1,0 +1,5 @@
+WYS Musculation — application PWA
+
+Publier les 5 fichiers index.html, manifest.webmanifest, sw.js, icon-192.png, icon-512.png à la racine d’un site HTTPS (ex. GitHub Pages).
+Sur Chrome Android : ouvrir l’URL HTTPS > menu ⋮ > Installer l’application.
+Les données sont locales à chaque navigateur/téléphone. Le fichier HTML actuel et le site HTTPS n’ont pas le même stockage : les données ne sont PAS transférées automatiquement. Gardez le fichier initial et exportez son CSV.
