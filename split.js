@@ -60,61 +60,67 @@ function prepareAlarm(){
 
 try{
 
-const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
 
-if(!AudioContextClass)return;
+if(!AudioCtx)return;
 
-if(!audioCtx)audioCtx=new AudioContextClass();
+audioCtx=audioCtx||new AudioCtx();
 
 if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
 
-}catch{}
+// Une impulsion silencieuse lors du clic autorise la sortie audio sur mobile.
+
+const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain();
+
+gain.gain.value=0;
+
+oscillator.connect(gain);gain.connect(audioCtx.destination);
+
+oscillator.start();oscillator.stop(audioCtx.currentTime+0.01);
+
+}catch(e){}
 
 }
 
 function alarmFiveSeconds(){
 
-// Vibration sur 5 secondes (si le navigateur et les réglages l'autorisent).
-
-try{if(typeof navigator.vibrate==='function')navigator.vibrate(Array(10).fill(0).flatMap((_,i)=>i===9?[350]:[350,150]));}catch{}
-
-// Son intermittent pendant 5 secondes via Web Audio (volume du média).
+try{navigator.vibrate?.(Array.from({length:20},(_,i)=>i%2?150:350))}catch(e){}
 
 try{
 
-if(!audioCtx||audioCtx.state!=='running')return;
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+
+if(!AudioCtx)return;
+
+audioCtx=audioCtx||new AudioCtx();
+
+if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
 
 const now=audioCtx.currentTime;
 
-const osc=audioCtx.createOscillator();
+for(let i=0;i<15;i++){
 
-const gain=audioCtx.createGain();
+const t=now+i/3;
 
-osc.type='sine';osc.frequency.value=880;
+const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
 
-gain.gain.setValueAtTime(0,now);
+osc.type='sine';osc.frequency.value=i%2?740:880;
 
-for(let i=0;i<10;i++){
+gain.gain.setValueAtTime(.0001,t);
 
-const t=now+i*0.5;
+gain.gain.exponentialRampToValueAtTime(.12,t+.02);
 
-gain.gain.setValueAtTime(0,t);
-
-gain.gain.linearRampToValueAtTime(0.22,t+0.015);
-
-gain.gain.setValueAtTime(0.22,t+0.34);
-
-gain.gain.linearRampToValueAtTime(0,t+0.35);
-
-}
+gain.gain.exponentialRampToValueAtTime(.0001,t+.22);
 
 osc.connect(gain);gain.connect(audioCtx.destination);
 
-osc.start(now);osc.stop(now+5);
+osc.start(t);osc.stop(t+.24);
 
-osc.onended=()=>{osc.disconnect();gain.disconnect()};
+osc.onended=()=>{try{osc.disconnect();gain.disconnect()}catch(e){}};
 
-}catch{}
+}
+
+}catch(e){}
 
 }
 
