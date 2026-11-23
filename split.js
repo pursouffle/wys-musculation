@@ -88,6 +88,62 @@ function startTimer(s,btn){stopTimer();timerBtn=btn;btn.dataset.rest=s;remain=s;
 
 function toggleTimer(s,btn){if(timerBtn!==btn){startTimer(s,btn);return}if(end){remain=Math.max(0,Math.ceil((end-Date.now())/1000));clearInterval(timer);timer=null;end=0;btn.textContent='▶ Reprendre '+remain+' s'}else{end=Date.now()+remain*1000;timer=setInterval(tick,250);tick()}}
 
+
+function explanationBox(){
+
+const wrap=document.createElement('details');
+
+wrap.className='jf-rir-help';
+
+wrap.style.cssText='flex:1 1 auto;min-width:0';
+
+const summary=document.createElement('summary');
+
+summary.textContent='📖 Aide RIR et entraînement';
+
+summary.style.cssText='cursor:pointer;font-size:13px;font-weight:700;padding:10px 8px;background:#edf3f9;color:#173e61;border-radius:9px;text-align:center;list-style:none';
+
+wrap.append(summary);
+
+const content=document.createElement('div');
+
+content.style.cssText='line-height:1.65;margin-top:14px;padding:12px;background:#f8fafc;border:1px solid #dbe4ee;border-radius:10px';
+
+content.innerHTML=`
+
+<h3>1. RIR – Répétitions en réserve</h3>
+
+<p>Le RIR est le nombre de répétitions que tu pourrais encore faire avant l’échec musculaire, avec une bonne technique.</p>
+
+<p><b>RIR 4</b> : encore 4 répétitions ; <b>RIR 3</b> : encore 3 ; <b>RIR 2</b> : encore 2 ; <b>RIR 1</b> : encore 1 ; <b>RIR 0</b> : échec musculaire.</p>
+
+<p><b>Exemple :</b> tu fais 10 répétitions au développé couché et tu aurais pu en faire 12 : tu es à RIR 2.</p>
+
+<h3>2. Tempo – Vitesse d’exécution</h3>
+
+<p><b>2-0-1-0</b> : 2 secondes pour descendre, aucune pause en bas, 1 seconde pour remonter, aucune pause en haut.</p>
+
+<h3>3. Progression des charges</h3>
+
+<p>Augmente d’abord les répétitions. Quand toutes les séries atteignent le haut de la fourchette avec la bonne technique et le RIR prévu, augmente légèrement la charge.</p>
+
+<h3>4. Semaine 5 – Décharge</h3>
+
+<p>Réduis le volume à 2 séries par exercice, diminue la charge d’environ 10 % et garde un RIR 4 pour favoriser la récupération.</p>
+
+<h3>5. Semaine 12 – Bilan</h3>
+
+<p>Compare les charges et répétitions des dernières séries renseignées en S1 et S12 avec le bouton 📈 Progression. Évite les répétitions forcées et conserve une technique identique.</p>
+
+`;
+
+wrap.append(content);
+
+return wrap;
+
+}
+
+
 function render(){
 
 stopTimer();
@@ -97,16 +153,39 @@ split.replaceChildren();
 if(week!==12)activeTab='seances';
 
 
-
 // Le sélecteur de semaine reste toujours visible, même dans Progression.
 
 const top=document.createElement('div');
 
 top.className='card';
 
-top.innerHTML='<div class="controls"><label for="splitWeek"><b>Semaine</b></label><select id="splitWeek"></select></div><p id="splitPhase" class="small"></p><div id="splitProgress" style="font-size:13px;font-weight:650;margin:9px 0"></div><div class="progress"><div id="splitBar"></div></div>';
+top.innerHTML='<div class="controls" id="splitWeekControls"><label for="splitWeek"><b>Semaine</b></label><select id="splitWeek"></select></div><p id="splitPhase" class="small"></p><div id="splitProgress" style="font-size:13px;font-weight:650;margin:9px 0"></div><div class="progress"><div id="splitBar"></div></div>';
 
 split.append(top);
+
+const weekControls=top.querySelector('#splitWeekControls');
+
+weekControls.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+
+const weekSelect=weekControls.querySelector('select');
+
+weekSelect.style.cssText='flex:0 1 120px;min-width:100px;padding:10px 4px';
+
+const help=explanationBox();
+
+weekControls.append(help);
+
+help.addEventListener('toggle',()=>{
+
+if(help.open){
+
+help.style.flexBasis='100%';
+
+weekControls.append(help);
+
+}else{help.style.flexBasis='auto'}
+
+});
 
 const sel=top.querySelector('select');
 
@@ -139,34 +218,29 @@ render();
 top.querySelector('#splitPhase').textContent=phase(week);
 
 
-
-// Le bouton Progression est créé EXCLUSIVEMENT en semaine 12.
+// Un seul bouton en S12 : progression / retour aux exercices.
 
 if(week===12){
 
-const tabs=document.createElement('div');
+const actions=document.createElement('div');
 
-tabs.className='card';
-
-tabs.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
-
-[['seances','🏋️ Séances'],['progression','📈 Progression']].forEach(([id,label])=>{
+actions.className='card';
 
 const btn=document.createElement('button');
 
 btn.type='button';
 
-btn.className='button'+(activeTab===id?'':' ghost');
+btn.className='button';
 
-btn.textContent=label;
+btn.style.cssText='display:block;width:100%;padding:14px';
 
-btn.onclick=()=>{activeTab=id;render()};
+btn.textContent=activeTab==='progression'?'← Retour aux exercices':'📈 Progression';
 
-tabs.append(btn);
+btn.onclick=()=>{activeTab=activeTab==='progression'?'seances':'progression';render()};
 
-});
+actions.append(btn);
 
-split.append(tabs);
+split.append(actions);
 
 if(activeTab==='progression'){
 
@@ -181,7 +255,6 @@ return;
 const nav=document.createElement('div');nav.className='days';DAYS.forEach((name,i)=>{const b=document.createElement('button');b.type='button';b.className=i===day?'active':'';b.innerHTML='<b>'+name+'</b><span>'+SHORT[i]+'</span>';b.setAttribute('aria-pressed',String(i===day));b.onclick=()=>{day=i;write('jf_split_day',i);render()};nav.append(b)});split.append(nav);
 
 const card=document.createElement('div');card.className='card';card.innerHTML=`<div class="timer"><div><h2>${DAYS[day]} · ${GROUPS[day]}</h2><div class="small">${week===5?'RIR 4 · charges réduites':week===12?'Tests S12 · sans répétitions forcées':week<=4?'RIR 3 → 1 selon progression':'RIR 2 → 1 selon progression'}</div></div><strong id="splitClock" style="font-size:25px">00:00</strong></div><p class="small">${week===12?'Teste les mouvements ci-dessous, puis effectue le reste avec un volume réduit.':'Saisis les kg et répétitions après chaque série.'}</p>`;split.append(card);
-
 
 
 PLAN[day].forEach((ex,i)=>{const c=document.createElement('div');c.className='exercise';const title=document.createElement('h3');title.textContent=(i+1)+' · '+ex.name;c.append(title);const meta=document.createElement('div');meta.className='small';meta.textContent=`${sets(ex,week)} séries · ${ex.reps} reps · repos ${ex.rest} s`;c.append(meta);if(ex.note||week===5){const note=document.createElement('div');note.className='note';note.textContent=(week===5?'S5 : volume réduit, environ −10 % de charge, RIR 4. ':'')+ex.note;c.append(note)}
