@@ -7,24 +7,34 @@
   <meta name="theme-color" content="#13273a">
   <title>JF Training — Split prise de masse</title>
   <link rel="icon" href="./icon-192.png">
+
   <style>
     :root {
       font-family: system-ui, -apple-system, sans-serif;
       color: #142337;
       background: #f1f5f9;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
     header {
       background: #13273a;
       color: white;
       padding: 20px 16px;
     }
+
     main {
       max-width: 690px;
       margin: auto;
       padding: 12px 12px 80px;
     }
+
     .card {
       background: white;
       border: 1px solid #dbe4ee;
@@ -33,9 +43,21 @@
       margin: 10px 0;
       box-shadow: 0 2px 8px #1231;
     }
-    h1 { margin: 0; font-size: 23px; }
-    h2 { font-size: 20px; }
-    .small { font-size: 12px; color: #52667d; }
+
+    h1 {
+      margin: 0;
+      font-size: 23px;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #52667d;
+    }
+
     .button {
       display: inline-block;
       background: #173e61;
@@ -48,7 +70,12 @@
       cursor: pointer;
       text-decoration: none;
     }
-    .ghost { background: #edf3f9; color: #173e61; }
+
+    .ghost {
+      background: #edf3f9;
+      color: #173e61;
+    }
+
     .row {
       display: grid;
       grid-template-columns: 28px 1fr 1fr 40px;
@@ -56,6 +83,7 @@
       align-items: center;
       margin: 8px 0;
     }
+
     .row input:not([type=checkbox]) {
       width: 100%;
       padding: 9px 4px;
@@ -64,17 +92,24 @@
       text-align: center;
       font-size: 16px;
     }
+
     .row input[type=checkbox] {
       width: 23px;
       height: 23px;
       accent-color: #147c66;
     }
+
     .exercise {
       border-top: 1px solid #e1e8f0;
       padding-top: 13px;
       margin-top: 13px;
     }
-    .exercise h3 { font-size: 16px; margin: 0 0 4px; }
+
+    .exercise h3 {
+      font-size: 16px;
+      margin: 0 0 4px;
+    }
+
     .previous {
       background: #fff8e9;
       border: 1px solid #e7c98d;
@@ -84,6 +119,7 @@
       font-size: 13px;
       line-height: 1.7;
     }
+
     .note {
       background: #f0f6ff;
       border-left: 3px solid #4076a3;
@@ -92,17 +128,20 @@
       font-size: 13px;
       margin-top: 8px;
     }
+
     .progress {
       height: 9px;
       background: #e3eaf1;
       border-radius: 10px;
       overflow: hidden;
     }
+
     .progress div {
       height: 100%;
       background: #17816d;
       width: 0;
     }
+
     .test {
       border: 1px solid #f3ca8a;
       background: #fff9ee;
@@ -110,21 +149,32 @@
       border-radius: 10px;
       margin-bottom: 10px;
     }
-    select, input {
+
+    select,
+    input {
       font-family: inherit;
     }
-    [hidden] { display: none !important; }
+
+    [hidden] {
+      display: none !important;
+    }
   </style>
 </head>
+
 <body>
   <header>
     <div style="max-width:690px;margin:auto">
       <h1 style="display:flex;align-items:center;gap:12px">
-        <img src="./icon-192.png" alt="Logo JF Training"
-             width="52" height="52"
-             style="border-radius:10px">
+        <img
+          src="./icon-192.png"
+          alt="Logo JF Training"
+          width="52"
+          height="52"
+          style="border-radius:10px"
+        >
         JF Training
       </h1>
+
       <div style="opacity:.85;font-size:13px">
         Programme 2 · Split prise de masse · 12 semaines
       </div>
@@ -136,6 +186,7 @@
       <a class="button ghost" href="./index.html">
         ← Programme 1 · Haut / Bas
       </a>
+
       <p class="small">
         Programme Split indépendant. Tes résultats sont
         enregistrés séparément du programme Haut / Bas.
@@ -146,23 +197,40 @@
   </main>
 
   <script>
-    /*
-      Préparation des éléments attendus par split.js,
-      sans exécuter le programme original.
-    */
     window.safeGet = function (key) {
-      try { return localStorage.getItem(key); }
-      catch (e) { return null; }
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return null;
+      }
     };
+
     window.safeSet = function (key, value) {
-      try { localStorage.setItem(key, value); }
-      catch (e) {}
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {}
     };
   </script>
 
-  <script src="./split.js"></script>
-  
-<a href="./index.html" style="position:fixed;bottom:15px;right:15px;background:#147c66;color:white;padding:12px 16px;border-radius:12px;text-decoration:none;font-weight:bold;z-index:9999;box-shadow:0 3px 12px #0003">🏋️ Programme 1</a>
+  <script src="./split.js?v=3"></script>
 
+  <a
+    href="./index.html"
+    style="
+      position:fixed;
+      bottom:15px;
+      right:15px;
+      background:#147c66;
+      color:white;
+      padding:12px 16px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:bold;
+      z-index:9999;
+      box-shadow:0 3px 12px #0003;
+    "
+  >
+    🏋️ Programme 1
+  </a>
 </body>
 </html>
