@@ -1,6 +1,7 @@
+
 {
-  "name": "WYS Musculation",
-  "short_name": "WYS Muscu",
+  "name": "JF Training",
+  "short_name": "JF Training",
   "description": "Carnet de musculation 12 semaines avec suivi des charges",
   "start_url": "./index.html",
   "scope": "./",
