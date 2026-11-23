@@ -54,17 +54,15 @@ let program=read('jf_active_program')==='split'?'split':'original';let week=Math
 
 let timer=null,end=0,remain=0,timerBtn=null;
 
-const selector=document.createElement('div');selector.className='card';selector.innerHTML='<label for="jfProgram"><b>🏋️ Choisir mon programme</b></label><select id="jfProgram" style="display:block;width:100%;padding:12px;margin-top:8px;border-radius:9px;border:1px solid #ccd7e2;font-size:16px"><option value="original">Programme 1 · Haut / Bas (original)</option><option value="split">Programme 2 · Split prise de masse</option></select>';
+// Le programme Split possède sa propre page split.html.
 
-oldMain.insertBefore(selector,oldMain.firstChild);
+// Aucun sélecteur de programme n'est nécessaire ici.
 
-const originalNodes=[...oldMain.children].filter(x=>x!==selector);
+const originalNodes=[...oldMain.children];
 
-const split=document.createElement('section');split.id='jfSplit';split.hidden=true;oldMain.append(split);
+const split=document.createElement('section');split.id='jfSplit';oldMain.append(split);
 
-function setProgram(p){program=p;write('jf_active_program',p);selector.querySelector('select').value=p;originalNodes.forEach(x=>x.hidden=p==='split');split.hidden=p!=='split';const subtitle=document.querySelector('header div div');if(subtitle)subtitle.textContent=p==='split'?'Split prise de masse · 12 semaines · 5 jours':'Corps complet · 12 semaines · Haut / Bas';if(p==='split')render()}
-
-selector.querySelector('select').onchange=e=>setProgram(e.target.value);
+function setProgram(p){program=p;write('jf_active_program',p);originalNodes.forEach(x=>x.hidden=p==='split');split.hidden=p!=='split';const subtitle=document.querySelector('header div div');if(subtitle)subtitle.textContent=p==='split'?'Split prise de masse · 12 semaines · 5 jours':'Corps complet · 12 semaines · Haut / Bas';if(p==='split')render()}
 
 const phase=w=>w<=4?'Progression · semaines 1 à 4':w===5?'Décharge · semaine 5':w<=9?'Progression · semaines 6 à 9':w<=11?'Consolidation · semaines 10 et 11':'Tests et bilan · semaine 12';
 
@@ -202,6 +200,6 @@ function progress(){let total=0,done=0;PLAN[day].forEach((ex,i)=>{for(let s=0;s<
 
 function exportCSV(){const rows=[['Semaine','Jour','Exercice','Série','Charge kg','Reps','Terminée']];for(let w=1;w<=12;w++)for(let d=0;d<5;d++)PLAN[d].forEach((ex,i)=>{for(let s=0;s<sets(ex,w);s++){const kg=read(key(w,d,i,s,'kg')),reps=read(key(w,d,i,s,'reps')),done=read(key(w,d,i,s,'done'));if(kg||reps||done==='1')rows.push([w,DAYS[d],ex.name,s+1,kg,reps,done==='1'?'Oui':'Non'])}});rows.push([]);rows.push(['TESTS','Semaine','Jour','Exercice','Charge/lest kg','Reps','Assistance']);for(let w of [1,12])for(let d=0;d<5;d++)for(const [,name]of TESTS[d]){const i=PLAN[d].findIndex(x=>x.name===name);rows.push(['Test',w,DAYS[d],name,read(`jf_split_test_${w}_${d}_${i}_kg`),read(`jf_split_test_${w}_${d}_${i}_reps`),read(`jf_split_test_${w}_${d}_${i}_assist`)])}const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='JF_Training_Split_12_semaines.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&end)tick()});setProgram(program);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&end)tick()});setProgram('split');
 
 })();
