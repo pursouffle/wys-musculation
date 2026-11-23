@@ -6,7 +6,7 @@
 
 <div class="card"><div class="controls"><label for="week"><b>Semaine</b></label><select id="week"><option value="1">Semaine 1</option><option value="2">Semaine 2</option><option value="3">Semaine 3</option><option value="4">Semaine 4</option><option value="5">Semaine 5</option><option value="6">Semaine 6</option><option value="7">Semaine 7</option><option value="8">Semaine 8</option><option value="9">Semaine 9</option><option value="10">Semaine 10</option><option value="11">Semaine 11</option><option value="12">Semaine 12</option></select></div><p id="phase" class="small"></p><div id="progressLabel" style="font-size:13px;font-weight:650;margin:9px 0"></div><div class="progress"><div id="progressBar"></div></div></div>
 
-<div class="days" id="days"><span>Chargement des séances…</span></div><div class="card"><div class="timer"><div><h2 id="dayTitle"></h2><div id="rir" class="small"></div></div><div style="text-align:right"><strong id="clock">00:00</strong><br><button id="stop" class="button ghost" style="padding:6px 8px">Arrêter</button></div></div><p id="hint" class="small"></p><div id="workout"></div></div>
+<div class="days" id="days"><span>Chargement des séances…</span></div><div class="card"><div class="timer"><div><h2 id="dayTitle"></h2><div id="rir" class="small"></div></div><div style="text-align:right"><strong id="clock">00:00</strong><br><button id="pause" class="button ghost" style="padding:6px 8px">Pause</button> <button id="stop" class="button ghost" style="padding:6px 8px">Arrêter</button></div></div><p id="hint" class="small"></p><div id="workout"></div></div>
 
 <div class="card"><details><summary>📏 Bilan S0 · S5 · S12</summary><p class="small">Au réveil, à jeun, mêmes conditions. Poids = moyenne sur 7 jours.</p><div id="measurements"></div></details></div>
 
@@ -42,21 +42,23 @@ function progress(){let arr=getExercises(week,day),total=arr.reduce((s,x)=>s+x.s
 
 function restLabel(seconds){return '⏱ Repos '+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')}
 
-function stopRestAlert(){if(alertInterval){clearInterval(alertInterval);alertInterval=null}if(alertTimeout){clearTimeout(alertTimeout);alertTimeout=null}try{navigator.vibrate?.(0)}catch(e){}try{if(audioContext?.state==='running')audioContext.suspend().catch(()=>{})}catch(e){}if($('stop').textContent==='Arrêter alerte')$('stop').textContent='Arrêter'}
+function stopRestAlert(){if(alertTimeout){clearTimeout(alertTimeout);alertTimeout=null}try{navigator.vibrate?.(0)}catch(e){}try{if(audioContext?.state==='running')audioContext.suspend().catch(()=>{})}catch(e){}if($('stop').textContent==='Arrêter alerte')$('stop').textContent='Arrêter'}
 
 function playRestSound(){try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;audioContext=audioContext||new AudioCtx();if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});const now=audioContext.currentTime;for(let i=0;i<24;i++){const t=now+i/3;const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sine';osc.frequency.value=i%2?740:880;gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.12,t+.02);gain.gain.exponentialRampToValueAtTime(.0001,t+.22);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.24)}}catch(e){}}
 
-function finishRest(){clearInterval(timer);timer=null;restEnd=0;if(restButton)restButton.textContent='✓ Repos terminé';restButton=null;playRestSound();try{navigator.vibrate?.(Array.from({length:16},(_,i)=>i%2?150:350))}catch(e){}$('stop').textContent='Arrêter alerte';alertTimeout=setTimeout(stopRestAlert,8000)}
+function finishRest(){clearInterval(timer);timer=null;restEnd=0;remaining=0;if(restButton)restButton.textContent='✓ Repos terminé';restButton=null;$('clock').textContent='00:00';$('pause').textContent='Pause';$('pause').disabled=true;playRestSound();try{navigator.vibrate?.(Array.from({length:32},(_,i)=>i%2?150:350))}catch(e){}$('stop').textContent='Arrêter alerte';alertTimeout=setTimeout(stopRestAlert,8000)}
 
 function resetRestButton(){if(restButton){restButton.textContent='⏱ Repos '+restButton.dataset.seconds+' s';restButton=null}}
 
-function start(s,button){stopRestAlert();clearInterval(timer);resetRestButton();restButton=button;button.dataset.seconds=s;remaining=s;restEnd=Date.now()+s*1000;try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(AudioCtx){audioContext=audioContext||new AudioCtx();audioContext.resume().catch(()=>{})}}catch(e){}tick();timer=setInterval(tick,250)}
+function start(s,button){stopRestAlert();clearInterval(timer);resetRestButton();restButton=button;button.dataset.seconds=s;remaining=s;restEnd=Date.now()+s*1000;$('pause').disabled=false;$('pause').textContent='Pause';try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(AudioCtx){audioContext=audioContext||new AudioCtx();audioContext.resume().catch(()=>{})}}catch(e){}tick();timer=setInterval(tick,250)}
 
-function tick(){if(restEnd&&restButton){remaining=Math.max(0,Math.ceil((restEnd-Date.now())/1000))}const value=Math.max(remaining,0);$('clock').textContent=String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');if(restButton)restButton.textContent=restLabel(value);if(restButton&&value===0){clearInterval(timer);timer=null;restEnd=0;finishRest()}}
+function tick(){if(restEnd&&restButton){remaining=Math.max(0,Math.ceil((restEnd-Date.now())/1000))}const value=Math.max(remaining,0);$('clock').textContent=String(Math.floor(value/60)).padStart(2,'0')+':'+String(value%60).padStart(2,'0');if(restButton)restButton.textContent=restLabel(value);if(restButton&&restEnd&&value===0)finishRest()}
 
-$('stop').onclick=()=>{stopRestAlert();clearInterval(timer);timer=null;remaining=0;restEnd=0;resetRestButton();tick()};
+$('pause').disabled=true;$('pause').onclick=()=>{if(!restButton)return;if(restEnd){remaining=Math.max(0,Math.ceil((restEnd-Date.now())/1000));clearInterval(timer);timer=null;restEnd=0;$('pause').textContent='Reprendre';restButton.textContent='⏸ Pause '+remaining+' s';tick()}else if(remaining>0){restEnd=Date.now()+remaining*1000;$('pause').textContent='Pause';tick();timer=setInterval(tick,250)}};
 
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&restButton)tick()});
+$('stop').onclick=()=>{stopRestAlert();clearInterval(timer);timer=null;remaining=0;restEnd=0;resetRestButton();$('pause').textContent='Pause';$('pause').disabled=true;tick()};
+
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&restButton&&restEnd)tick()});
 
 const measures=['Poids moyen (kg)','Tour de poitrine (cm)','Tour de bras contracté (cm)','Tour de taille au nombril (cm)','Tour de cuisse (cm)','Développé couché : reps charge S1','Squat : reps charge S1'];for(const moment of ['S0','S5','S12']){let h=document.createElement('h3');h.textContent=moment;$('measurements').append(h);measures.forEach((m,i)=>{let row=document.createElement('div');row.className='measure';let l=document.createElement('label');l.textContent=m;let inp=document.createElement('input');inp.type='number';inp.step='.1';inp.value=storage('measure_'+moment+'_'+i);inp.oninput=()=>save('measure_'+moment+'_'+i,inp.value);row.append(l,inp);$('measurements').append(row)})}
 
