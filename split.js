@@ -234,27 +234,43 @@ const desc=document.createElement('p');desc.className='small';desc.textContent='
 
 const values=document.createElement('div');details.append(values);
 
+const format=n=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(n);
+
+const stored=(weekNum,i)=>{const raw=read(bilanKey(weekNum,i));if(raw==='')return null;const n=Number(raw);return Number.isFinite(n)?n:null};
+
+const diff=(from,to,i)=>{const a=stored(from,i),b=stored(to,i);if(a===null||b===null)return 'À compléter';const d=Math.round((b-a)*10)/10;return `${d>0?'+':d<0?'−':''}${format(Math.abs(d))} ${BILAN_FIELDS[i][1]}`};
+
 function draw(){
 
 values.replaceChildren();
 
 BILAN_FIELDS.forEach(([label,unit],i)=>{
 
-const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;align-items:center;margin:12px 0';
+const section=document.createElement('section');section.style.cssText='border-top:1px solid #e1e8f0;padding:13px 0';
 
-const name=document.createElement('label');name.textContent=`${label} (${unit})`;
+const title=document.createElement('div');title.textContent=label;title.style.cssText='font-weight:700;margin-bottom:8px';section.append(title);
 
-const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.1';inp.inputMode='decimal';inp.value=read(bilanKey(w,i));
+const weeks=w===1?[1]:w===5?[1,5]:[1,5,12];
 
-inp.style.cssText='width:100%;padding:10px;border:1px solid #ccd7e2;border-radius:9px;font-size:16px';
+const measures=document.createElement('div');measures.style.cssText=`display:grid;grid-template-columns:repeat(${weeks.length},minmax(0,1fr));gap:7px`;
 
-inp.setAttribute('aria-label',`${label}, semaine ${w}`);
+weeks.forEach(weekNum=>{
 
-inp.oninput=()=>{write(bilanKey(w,i),inp.value);updateComparisons()};
+const cell=document.createElement('div');cell.style.cssText='background:#f1f5f9;border-radius:9px;padding:8px 6px;min-width:0;text-align:center';
 
-row.append(name,inp);values.append(row);
+const heading=document.createElement('div');heading.textContent=`S${weekNum}`;heading.style.cssText='font-size:12px;color:#52667d;margin-bottom:5px';cell.append(heading);
 
-if(w!==1){const compare=document.createElement('div');compare.className='small';compare.dataset.bilanIndex=String(i);compare.style.cssText='margin:-5px 0 12px;padding-left:4px';values.append(compare)}
+if(weekNum===w){const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.1';inp.inputMode='decimal';inp.value=read(bilanKey(w,i));inp.style.cssText='width:100%;min-width:0;padding:7px 3px;border:1px solid #ccd7e2;border-radius:7px;font-size:16px;text-align:center';inp.setAttribute('aria-label',`${label}, semaine ${w}`);inp.oninput=()=>{write(bilanKey(w,i),inp.value);updateComparisons()};cell.append(inp)}
+
+else{const val=document.createElement('div');const n=stored(weekNum,i);val.textContent=n===null?'—':`${format(n)} ${unit}`;val.style.cssText='font-weight:700;font-size:15px';cell.append(val)}
+
+measures.append(cell);
+
+});section.append(measures);
+
+if(w!==1){const results=document.createElement('div');results.dataset.bilanIndex=String(i);results.style.cssText='margin-top:10px;font-size:13px';section.append(results)}
+
+values.append(section);
 
 });
 
@@ -268,27 +284,23 @@ if(w===1)return;
 
 values.querySelectorAll('[data-bilan-index]').forEach(el=>{
 
-const i=Number(el.dataset.bilanIndex),current=read(bilanKey(w,i));
+const i=Number(el.dataset.bilanIndex);
 
-const refs=w===5?[1]:[1,5];
+el.replaceChildren();
 
-el.textContent=refs.map(ref=>{
+const periods=w===5?[[1,5,'S1 → S5']]:[[1,5,'S1 → S5'],[5,12,'S5 → S12'],[1,12,'Total S1 → S12']];
 
-const previous=read(bilanKey(ref,i));
+periods.forEach(([from,to,label],index)=>{
 
-if(current===''||previous==='')return `vs S${ref} : à compléter`;
+const line=document.createElement('div');line.style.cssText='display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 9px;border-radius:8px;margin-top:4px;'+(w===12&&index===2?'background:#edf3f9;font-weight:700':'');
 
-const delta=Number(current)-Number(previous);
+const left=document.createElement('span');left.textContent=label;
 
-if(!Number.isFinite(delta))return `vs S${ref} : à compléter`;
+const right=document.createElement('strong');right.textContent=diff(from,to,i);
 
-const rounded=Math.round(delta*10)/10;
+line.append(left,right);el.append(line);
 
-const formatted=new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(Math.abs(rounded));
-
-return `vs S${ref} : ${rounded>0?'+':rounded<0?'−':''}${formatted} ${BILAN_FIELDS[i][1]}`;
-
-}).join(' · ');
+});
 
 });
 
