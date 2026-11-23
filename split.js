@@ -54,6 +54,70 @@ let program=read('jf_active_program')==='split'?'split':'original';let week=Math
 
 let timer=null,end=0,remain=0,timerBtn=null;
 
+let audioCtx=null;
+
+function prepareAlarm(){
+
+try{
+
+const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+
+if(!AudioContextClass)return;
+
+if(!audioCtx)audioCtx=new AudioContextClass();
+
+if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+
+}catch{}
+
+}
+
+function alarmFiveSeconds(){
+
+// Vibration sur 5 secondes (si le navigateur et les réglages l'autorisent).
+
+try{if(typeof navigator.vibrate==='function')navigator.vibrate(Array(10).fill(0).flatMap((_,i)=>i===9?[350]:[350,150]));}catch{}
+
+// Son intermittent pendant 5 secondes via Web Audio (volume du média).
+
+try{
+
+if(!audioCtx||audioCtx.state!=='running')return;
+
+const now=audioCtx.currentTime;
+
+const osc=audioCtx.createOscillator();
+
+const gain=audioCtx.createGain();
+
+osc.type='sine';osc.frequency.value=880;
+
+gain.gain.setValueAtTime(0,now);
+
+for(let i=0;i<10;i++){
+
+const t=now+i*0.5;
+
+gain.gain.setValueAtTime(0,t);
+
+gain.gain.linearRampToValueAtTime(0.22,t+0.015);
+
+gain.gain.setValueAtTime(0.22,t+0.34);
+
+gain.gain.linearRampToValueAtTime(0,t+0.35);
+
+}
+
+osc.connect(gain);gain.connect(audioCtx.destination);
+
+osc.start(now);osc.stop(now+5);
+
+osc.onended=()=>{osc.disconnect();gain.disconnect()};
+
+}catch{}
+
+}
+
 // Le programme Split possède sa propre page split.html.
 
 // Aucun sélecteur de programme n'est nécessaire ici.
@@ -82,11 +146,11 @@ let activeTab='seances';
 
 function stopTimer(){if(timer)clearInterval(timer);timer=null;end=0;remain=0;if(timerBtn){timerBtn.textContent='⏱ Repos '+timerBtn.dataset.rest+' s';timerBtn=null}const clock=document.getElementById('splitClock');if(clock)clock.textContent='00:00'}
 
-function tick(){if(end)remain=Math.max(0,Math.ceil((end-Date.now())/1000));const clock=document.getElementById('splitClock');const value=`${String(Math.floor(remain/60)).padStart(2,'0')}:${String(remain%60).padStart(2,'0')}`;if(clock)clock.textContent=value;if(timerBtn&&end)timerBtn.textContent='⏸ '+value;if(end&&remain===0){const btn=timerBtn;stopTimer();if(btn)btn.textContent='✓ Repos terminé';try{navigator.vibrate?.([250,150,250,150,250])}catch{}}}
+function tick(){if(end)remain=Math.max(0,Math.ceil((end-Date.now())/1000));const clock=document.getElementById('splitClock');const value=`${String(Math.floor(remain/60)).padStart(2,'0')}:${String(remain%60).padStart(2,'0')}`;if(clock)clock.textContent=value;if(timerBtn&&end)timerBtn.textContent='⏸ '+value;if(end&&remain===0){const btn=timerBtn;stopTimer();if(btn)btn.textContent='✓ Repos terminé';alarmFiveSeconds()}}
 
-function startTimer(s,btn){stopTimer();timerBtn=btn;btn.dataset.rest=s;remain=s;end=Date.now()+s*1000;tick();timer=setInterval(tick,250)}
+function startTimer(s,btn){prepareAlarm();stopTimer();timerBtn=btn;btn.dataset.rest=s;remain=s;end=Date.now()+s*1000;tick();timer=setInterval(tick,250)}
 
-function toggleTimer(s,btn){if(timerBtn!==btn){startTimer(s,btn);return}if(end){remain=Math.max(0,Math.ceil((end-Date.now())/1000));clearInterval(timer);timer=null;end=0;btn.textContent='▶ Reprendre '+remain+' s'}else{end=Date.now()+remain*1000;timer=setInterval(tick,250);tick()}}
+function toggleTimer(s,btn){prepareAlarm();if(timerBtn!==btn){startTimer(s,btn);return}if(end){remain=Math.max(0,Math.ceil((end-Date.now())/1000));clearInterval(timer);timer=null;end=0;btn.textContent='▶ Reprendre '+remain+' s'}else{end=Date.now()+remain*1000;timer=setInterval(tick,250);tick()}}
 
 
 function explanationBox(){
