@@ -214,6 +214,92 @@ return wrap;
 }
 
 
+const BILAN_FIELDS=[['Poids moyen','kg'],['Tour de poitrine','cm'],['Tour de bras contracté','cm'],['Tour de taille au nombril','cm'],['Tour de cuisse','cm']];
+
+const bilanKey=(w,i)=>`jf_split_bilan_${w}_${i}`;
+
+function bilanCard(w){
+
+const outer=document.createElement('div');outer.className='card';
+
+const details=document.createElement('details');
+
+const summary=document.createElement('summary');summary.textContent=`💪 Bilan S${w} · Mensurations`;
+
+summary.style.cssText='font-weight:700;cursor:pointer;font-size:17px';
+
+details.append(summary);
+
+const desc=document.createElement('p');desc.className='small';desc.textContent='Mesures au réveil, à jeun et dans les mêmes conditions. Pour le poids, utilise la moyenne sur 7 jours.';details.append(desc);
+
+const values=document.createElement('div');details.append(values);
+
+function draw(){
+
+values.replaceChildren();
+
+BILAN_FIELDS.forEach(([label,unit],i)=>{
+
+const row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;align-items:center;margin:12px 0';
+
+const name=document.createElement('label');name.textContent=`${label} (${unit})`;
+
+const inp=document.createElement('input');inp.type='number';inp.min='0';inp.step='0.1';inp.inputMode='decimal';inp.value=read(bilanKey(w,i));
+
+inp.style.cssText='width:100%;padding:10px;border:1px solid #ccd7e2;border-radius:9px;font-size:16px';
+
+inp.setAttribute('aria-label',`${label}, semaine ${w}`);
+
+inp.oninput=()=>{write(bilanKey(w,i),inp.value);updateComparisons()};
+
+row.append(name,inp);values.append(row);
+
+if(w!==1){const compare=document.createElement('div');compare.className='small';compare.dataset.bilanIndex=String(i);compare.style.cssText='margin:-5px 0 12px;padding-left:4px';values.append(compare)}
+
+});
+
+updateComparisons();
+
+}
+
+function updateComparisons(){
+
+if(w===1)return;
+
+values.querySelectorAll('[data-bilan-index]').forEach(el=>{
+
+const i=Number(el.dataset.bilanIndex),current=read(bilanKey(w,i));
+
+const refs=w===5?[1]:[1,5];
+
+el.textContent=refs.map(ref=>{
+
+const previous=read(bilanKey(ref,i));
+
+if(current===''||previous==='')return `vs S${ref} : à compléter`;
+
+const delta=Number(current)-Number(previous);
+
+if(!Number.isFinite(delta))return `vs S${ref} : à compléter`;
+
+const rounded=Math.round(delta*10)/10;
+
+const formatted=new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(Math.abs(rounded));
+
+return `vs S${ref} : ${rounded>0?'+':rounded<0?'−':''}${formatted} ${BILAN_FIELDS[i][1]}`;
+
+}).join(' · ');
+
+});
+
+}
+
+details.addEventListener('toggle',()=>{if(details.open)updateComparisons()});
+
+draw();outer.append(details);return outer;
+
+}
+
 function render(){
 
 stopTimer();
@@ -287,6 +373,8 @@ render();
 
 top.querySelector('#splitPhase').textContent=phase(week);
 
+if([1,5,12].includes(week))split.append(bilanCard(week));
+
 
 // Un seul bouton en S12 : progression / retour aux exercices.
 
@@ -341,7 +429,7 @@ const exportCard=document.createElement('div');exportCard.className='card';expor
 
 function progress(){let total=0,done=0;PLAN[day].forEach((ex,i)=>{for(let s=0;s<sets(ex,week);s++){total++;if(read(key(week,day,i,s,'done'))==='1')done++}});const el=document.getElementById('splitProgress'),bar=document.getElementById('splitBar');if(el)el.textContent=`${done} / ${total} séries terminées`;if(bar)bar.style.width=(total?100*done/total:0)+'%'}
 
-function exportCSV(){const rows=[['Semaine','Jour','Exercice','Série','Charge kg','Reps','Terminée']];for(let w=1;w<=12;w++)for(let d=0;d<5;d++)PLAN[d].forEach((ex,i)=>{for(let s=0;s<sets(ex,w);s++){const kg=read(key(w,d,i,s,'kg')),reps=read(key(w,d,i,s,'reps')),done=read(key(w,d,i,s,'done'));if(kg||reps||done==='1')rows.push([w,DAYS[d],ex.name,s+1,kg,reps,done==='1'?'Oui':'Non'])}});rows.push([]);rows.push(['TESTS','Semaine','Jour','Exercice','Charge/lest kg','Reps','Assistance']);for(let w of [1,12])for(let d=0;d<5;d++)for(const [,name]of TESTS[d]){const i=PLAN[d].findIndex(x=>x.name===name);rows.push(['Test',w,DAYS[d],name,read(`jf_split_test_${w}_${d}_${i}_kg`),read(`jf_split_test_${w}_${d}_${i}_reps`),read(`jf_split_test_${w}_${d}_${i}_assist`)])}const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='JF_Training_Split_12_semaines.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+function exportCSV(){const rows=[['Semaine','Jour','Exercice','Série','Charge kg','Reps','Terminée']];for(let w=1;w<=12;w++)for(let d=0;d<5;d++)PLAN[d].forEach((ex,i)=>{for(let s=0;s<sets(ex,w);s++){const kg=read(key(w,d,i,s,'kg')),reps=read(key(w,d,i,s,'reps')),done=read(key(w,d,i,s,'done'));if(kg||reps||done==='1')rows.push([w,DAYS[d],ex.name,s+1,kg,reps,done==='1'?'Oui':'Non'])}});rows.push([]);rows.push(['TESTS','Semaine','Jour','Exercice','Charge/lest kg','Reps','Assistance']);for(let w of [1,12])for(let d=0;d<5;d++)for(const [,name]of TESTS[d]){const i=PLAN[d].findIndex(x=>x.name===name);rows.push(['Test',w,DAYS[d],name,read(`jf_split_test_${w}_${d}_${i}_kg`),read(`jf_split_test_${w}_${d}_${i}_reps`),read(`jf_split_test_${w}_${d}_${i}_assist`)])}rows.push([]);rows.push(['BILAN','Semaine','Mesure','Valeur','Unité']);for(const w of [1,5,12])BILAN_FIELDS.forEach(([label,unit],i)=>rows.push(['Bilan',w,label,read(bilanKey(w,i)),unit]));const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='JF_Training_Split_12_semaines.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&end)tick()});setProgram('split');
 
