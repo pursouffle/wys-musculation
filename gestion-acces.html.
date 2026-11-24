@@ -1,0 +1,242 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestion des accès — JF Training</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#142337;font-family:system-ui,sans-serif}
+header{background:#13273a;color:white;padding:22px 16px}
+main{max-width:650px;margin:auto;padding:15px}
+h1{font-size:23px;margin:0}
+h2{font-size:19px;margin-top:0}
+.card{background:white;border:1px solid #dbe4ee;border-radius:15px;padding:18px;margin:13px 0}
+button,select,input{font:inherit;padding:12px;border-radius:9px}
+button{background:#173e61;color:white;border:0;cursor:pointer}
+button:disabled{opacity:.5}
+select,input{width:100%;border:1px solid #ccd7e2;background:white;margin:8px 0}
+label{font-weight:650}
+.secondary{background:#edf3f9;color:#173e61}
+.small{color:#52667d;font-size:13px;line-height:1.5}
+.error{color:#b42318}
+.success{color:#147c66}
+#inviteResult{overflow-wrap:anywhere;background:#f0f6ff;padding:12px;border-radius:9px}
+.hidden{display:none!important}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{flex:1}
+</style>
+</head>
+<body>
+<header>
+<div style="max-width:650px;margin:auto">
+<h1>🐂 JF Training</h1>
+<div>Gestion des accès</div>
+</div>
+</header>
+<main>
+<p><a href="./index.html">← Retour à mes entraînements</a></p>
+
+<section class="card" id="loading">
+<p>Vérification de ton compte administrateur…</p>
+</section>
+
+<section class="card hidden" id="loginBox">
+<h2>Connexion administrateur</h2>
+<p class="small">Connecte-toi avec ton adresse e-mail JF Training.</p>
+<form id="loginForm">
+<label for="email">Adresse e-mail</label>
+<input id="email" type="email" autocomplete="email" required>
+<button type="submit" id="loginBtn">Recevoir mon lien de connexion</button>
+</form>
+<p id="loginStatus" role="status"></p>
+</section>
+
+<section class="card hidden" id="denied">
+<h2>Accès réservé</h2>
+<p>Cette page est réservée à l'administrateur de JF Training.</p>
+</section>
+
+<div id="admin" class="hidden">
+<section class="card">
+<h2>👥 Inviter un ami</h2>
+<p class="small">Chaque invitation est destinée à une seule personne et ne peut être activée qu'une fois.</p>
+
+<label for="duration">Durée de l'accès</label>
+<select id="duration">
+<option value="7">7 jours</option>
+<option value="30">30 jours</option>
+<option value="90">90 jours</option>
+<option value="0">Illimitée</option>
+</select>
+
+<button id="createBtn" type="button" style="width:100%">
+Créer une invitation
+</button>
+<p id="createStatus" role="status"></p>
+
+<div id="resultBox" class="hidden">
+<h3>Invitation créée</h3>
+<p class="small">Transmets ce lien uniquement à la personne invitée.</p>
+<div id="inviteResult"></div>
+<div class="actions" style="margin-top:12px">
+<button id="copyBtn" type="button">Copier le lien</button>
+<button id="shareBtn" type="button" class="secondary">Partager</button>
+</div>
+<p class="small">Conserve ce lien jusqu'à son utilisation.</p>
+</div>
+</section>
+
+<section class="card">
+<h2>🔐 Gestion des autorisations</h2>
+<p>Tu pourras désactiver un ami ou prolonger son accès depuis cette rubrique.</p>
+<p class="small">La liste des membres sera activée après vérification de la fonction Supabase qui permet à l'administrateur de les consulter. Aucun accès existant n'est modifié ici.</p>
+</section>
+</div>
+</main>
+
+<script type="module">
+import {createClient} from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const db=createClient(
+'https://nycwwzrtpswsngsghgiz.supabase.co',
+'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',
+{auth:{storageKey:'jf-cloud-auth'}}
+);
+
+const $=id=>document.getElementById(id);
+const show=(id,visible)=>$(id).classList.toggle('hidden',!visible);
+let currentLink='';
+
+async function initialize(){
+  show('loading',true);
+  show('loginBox',false);
+  show('denied',false);
+  show('admin',false);
+  try{
+    const {data,error}=await db.auth.getUser();
+    if(error||!data.user){
+      show('loginBox',true);
+      return;
+    }
+
+    const result=await db.rpc('jf_training_is_admin');
+    if(result.error)throw result.error;
+
+    if(result.data===true){
+      show('admin',true);
+    }else{
+      show('denied',true);
+    }
+  }catch(e){
+    console.error(e);
+    $('loading').textContent='Impossible de vérifier les autorisations. Réessaie en actualisant la page.';
+    return;
+  }
+  show('loading',false);
+}
+
+$('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const button=$('loginBtn');
+  button.disabled=true;
+  $('loginStatus').textContent='Envoi en cours…';
+  try{
+    const {error}=await db.auth.signInWithOtp({
+      email:$('email').value.trim(),
+      options:{
+        emailRedirectTo:location.origin+
+          location.pathname
+      }
+    });
+    if(error)throw error;
+    $('loginStatus').textContent=
+      'Vérifie tes e-mails et ouvre le lien reçu.';
+    $('loginStatus').className='success';
+  }catch(e){
+    console.error(e);
+    $('loginStatus').textContent=
+      "Impossible d'envoyer le lien de connexion.";
+    $('loginStatus').className='error';
+  }finally{
+    button.disabled=false;
+  }
+});
+
+$('createBtn').addEventListener('click',async()=>{
+  const button=$('createBtn');
+  const days=Number($('duration').value);
+  button.disabled=true;
+  show('resultBox',false);
+  $('createStatus').textContent='Création en cours…';
+  try{
+    const check=await db.rpc('jf_training_is_admin');
+    if(check.error||check.data!==true)
+      throw Error('Compte administrateur requis');
+
+    const {data,error}=await db.rpc(
+      'jf_training_create_invite',
+      {p_days:days===0?null:days}
+    );
+    if(error)throw error;
+
+    let code=null;
+    if(typeof data==='string')code=data;
+    else if(data&&typeof data==='object')
+      code=data.code||data.invite_code||data.token||null;
+
+    if(typeof code!=='string'||!/^[a-f0-9]{48}$/i.test(code)){
+      $('createStatus').textContent=
+        "La demande a été traitée, mais le format du code renvoyé doit être vérifié avant de partager l'invitation.";
+      return;
+    }
+
+    currentLink=new URL('./invitation.html',location.href).href+
+      '?code='+encodeURIComponent(code);
+    $('inviteResult').textContent=currentLink;
+    show('resultBox',true);
+    $('createStatus').textContent='Invitation créée.';
+    $('createStatus').className='success';
+  }catch(e){
+    console.error(e);
+    $('createStatus').textContent=
+      "Création impossible : "+e.message;
+    $('createStatus').className='error';
+  }finally{
+    button.disabled=false;
+  }
+});
+
+$('copyBtn').addEventListener('click',async()=>{
+  if(!currentLink)return;
+  try{
+    await navigator.clipboard.writeText(currentLink);
+    $('createStatus').textContent='Lien copié.';
+  }catch(e){
+    $('createStatus').textContent=
+      'Sélectionne le lien affiché pour le copier.';
+  }
+});
+
+$('shareBtn').addEventListener('click',async()=>{
+  if(!currentLink)return;
+  if(navigator.share){
+    try{
+      await navigator.share({
+        title:'Invitation JF Training',
+        text:'Voici ton invitation personnelle JF Training.',
+        url:currentLink
+      });
+    }catch(e){}
+  }else{
+    $('createStatus').textContent=
+      'Utilise le bouton Copier le lien.';
+  }
+});
+
+initialize();
+</script>
+</body>
+</html>
