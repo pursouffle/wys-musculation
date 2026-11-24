@@ -61,15 +61,28 @@ label{font-weight:650}
 <div id="admin" class="hidden">
 <section class="card">
 <h2>👥 Inviter un ami</h2>
-<p class="small">Chaque invitation est destinée à une seule personne et ne peut être activée qu'une fois.</p>
+<p class="small">
+Chaque invitation est destinée à une seule personne
+et ne peut être activée qu'une fois.
+</p>
 
 <label for="duration">Durée de l'accès</label>
 <select id="duration">
 <option value="7">7 jours</option>
-<option value="30">30 jours</option>
 <option value="90">90 jours</option>
 <option value="0">Illimitée</option>
+<option value="custom">📅 Date personnalisée</option>
 </select>
+
+<div id="customDateBox" class="hidden">
+<label for="customDate">Choisir la date de fin d'accès</label>
+<input id="customDate" type="date">
+<p class="small">
+L'accès sera calculé en jours à partir de la création
+de l'invitation. La date effective pourra être
+légèrement différente de la date choisie.
+</p>
+</div>
 
 <button id="createBtn" type="button" style="width:100%">
 Créer une invitation
@@ -78,7 +91,9 @@ Créer une invitation
 
 <div id="resultBox" class="hidden">
 <h3>Invitation créée</h3>
-<p class="small">Transmets ce lien uniquement à la personne invitée.</p>
+<p class="small">
+Transmets ce lien uniquement à la personne invitée.
+</p>
 <div id="inviteResult"></div>
 <div class="actions" style="margin-top:12px">
 <button id="copyBtn" type="button">Copier le lien</button>
@@ -90,8 +105,15 @@ Créer une invitation
 
 <section class="card">
 <h2>🔐 Gestion des autorisations</h2>
-<p>Tu pourras désactiver un ami ou prolonger son accès depuis cette rubrique.</p>
-<p class="small">La liste des membres sera activée après vérification de la fonction Supabase qui permet à l'administrateur de les consulter. Aucun accès existant n'est modifié ici.</p>
+<p>
+Tu pourras désactiver un ami ou prolonger son accès
+depuis cette rubrique.
+</p>
+<p class="small">
+La liste des membres sera activée après vérification
+de la fonction Supabase qui permet à l'administrateur
+de les consulter. Aucun accès existant n'est modifié ici.
+</p>
 </section>
 </div>
 </main>
@@ -110,13 +132,71 @@ const $=id=>document.getElementById(id);
 const show=(id,visible)=>$(id).classList.toggle('hidden',!visible);
 let currentLink='';
 
+function localDateString(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,'0');
+  const d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function updateDuration(){
+  const custom=$('duration').value==='custom';
+  show('customDateBox',custom);
+
+  if(custom){
+    const tomorrow=new Date();
+    tomorrow.setDate(tomorrow.getDate()+1);
+    $('customDate').min=localDateString(tomorrow);
+
+    if(!$('customDate').value ||
+       $('customDate').value<$('customDate').min){
+      $('customDate').value=$('customDate').min;
+    }
+  }
+}
+
+$('duration').addEventListener('change',updateDuration);
+updateDuration();
+
+function getDays(){
+  const selected=$('duration').value;
+
+  if(selected==='0')return null;
+
+  if(selected!=='custom')return Number(selected);
+
+  const value=$('customDate').value;
+  if(!value)throw Error('Choisis une date de fin.');
+
+  const [year,month,day]=value.split('-').map(Number);
+  const target=new Date(year,month-1,day,23,59,59,999);
+
+  if(
+    target.getFullYear()!==year ||
+    target.getMonth()!==month-1 ||
+    target.getDate()!==day
+  ){
+    throw Error('Date invalide.');
+  }
+
+  const difference=target.getTime()-Date.now();
+  const days=Math.ceil(difference/86400000);
+
+  if(days<1)throw Error('Choisis une date future.');
+  if(days>3650)throw Error('La durée maximale est de 3650 jours.');
+
+  return days;
+}
+
 async function initialize(){
   show('loading',true);
   show('loginBox',false);
   show('denied',false);
   show('admin',false);
+
   try{
     const {data,error}=await db.auth.getUser();
+
     if(error||!data.user){
       show('loginBox',true);
       return;
@@ -132,26 +212,33 @@ async function initialize(){
     }
   }catch(e){
     console.error(e);
-    $('loading').textContent='Impossible de vérifier les autorisations. Réessaie en actualisant la page.';
+    $('loading').textContent=
+      'Impossible de vérifier les autorisations. Réessaie en actualisant la page.';
     return;
+  }finally{
+    if(!$('loading').textContent.includes('Impossible')){
+      show('loading',false);
+    }
   }
-  show('loading',false);
 }
 
 $('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
+
   const button=$('loginBtn');
   button.disabled=true;
   $('loginStatus').textContent='Envoi en cours…';
+
   try{
     const {error}=await db.auth.signInWithOtp({
       email:$('email').value.trim(),
       options:{
-        emailRedirectTo:location.origin+
-          location.pathname
+        emailRedirectTo:location.origin+location.pathname
       }
     });
+
     if(error)throw error;
+
     $('loginStatus').textContent=
       'Vérifie tes e-mails et ouvre le lien reçu.';
     $('loginStatus').className='success';
@@ -167,42 +254,55 @@ $('loginForm').addEventListener('submit',async e=>{
 
 $('createBtn').addEventListener('click',async()=>{
   const button=$('createBtn');
-  const days=Number($('duration').value);
   button.disabled=true;
+  currentLink='';
   show('resultBox',false);
   $('createStatus').textContent='Création en cours…';
+  $('createStatus').className='';
+
   try{
+    const days=getDays();
+
     const check=await db.rpc('jf_training_is_admin');
-    if(check.error||check.data!==true)
+    if(check.error||check.data!==true){
       throw Error('Compte administrateur requis');
+    }
 
     const {data,error}=await db.rpc(
       'jf_training_create_invite',
-      {p_days:days===0?null:days}
+      {p_days:days}
     );
+
     if(error)throw error;
 
     let code=null;
-    if(typeof data==='string')code=data;
-    else if(data&&typeof data==='object')
+
+    if(typeof data==='string'){
+      code=data;
+    }else if(data&&typeof data==='object'){
       code=data.code||data.invite_code||data.token||null;
+    }
 
     if(typeof code!=='string'||!/^[a-f0-9]{48}$/i.test(code)){
       $('createStatus').textContent=
-        "La demande a été traitée, mais le format du code renvoyé doit être vérifié avant de partager l'invitation.";
+        "La demande a été traitée, mais le format du code doit être vérifié.";
       return;
     }
 
-    currentLink=new URL('./invitation.html',location.href).href+
-      '?code='+encodeURIComponent(code);
+    const url=new URL('./invitation.html',location.href);
+    url.searchParams.set('code',code);
+    currentLink=url.href;
+
     $('inviteResult').textContent=currentLink;
     show('resultBox',true);
+
     $('createStatus').textContent='Invitation créée.';
     $('createStatus').className='success';
+
   }catch(e){
     console.error(e);
     $('createStatus').textContent=
-      "Création impossible : "+e.message;
+      'Création impossible : '+e.message;
     $('createStatus').className='error';
   }finally{
     button.disabled=false;
@@ -211,6 +311,7 @@ $('createBtn').addEventListener('click',async()=>{
 
 $('copyBtn').addEventListener('click',async()=>{
   if(!currentLink)return;
+
   try{
     await navigator.clipboard.writeText(currentLink);
     $('createStatus').textContent='Lien copié.';
@@ -222,6 +323,7 @@ $('copyBtn').addEventListener('click',async()=>{
 
 $('shareBtn').addEventListener('click',async()=>{
   if(!currentLink)return;
+
   if(navigator.share){
     try{
       await navigator.share({
