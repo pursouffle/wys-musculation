@@ -66,6 +66,17 @@ Chaque invitation est destinée à une seule personne
 et ne peut être activée qu'une fois.
 </p>
 
+<label for="programmes">Programme à partager</label>
+<select id="programmes">
+<option value="1">🏋️ Programme 1 — Haut / Bas</option>
+<option value="2">💪 Programme 2 — Split</option>
+<option value="both">🔥 Les deux programmes</option>
+</select>
+<p class="small">
+Ton ami recevra uniquement l'autorisation correspondant
+au programme choisi.
+</p>
+
 <label for="duration">Durée de l'accès</label>
 <select id="duration">
 <option value="7">7 jours</option>
@@ -162,7 +173,6 @@ function getDays(){
   const selected=$('duration').value;
 
   if(selected==='0')return null;
-
   if(selected!=='custom')return Number(selected);
 
   const value=$('customDate').value;
@@ -186,6 +196,24 @@ function getDays(){
   if(days>3650)throw Error('La durée maximale est de 3650 jours.');
 
   return days;
+}
+
+function getProgrammes(){
+  const selected=$('programmes').value;
+
+  if(selected==='1')return ['1'];
+  if(selected==='2')return ['2'];
+  if(selected==='both')return ['1','2'];
+
+  throw Error('Choisis un programme.');
+}
+
+function getProgrammeLabel(){
+  const selected=$('programmes').value;
+
+  if(selected==='1')return 'Programme 1 — Haut / Bas';
+  if(selected==='2')return 'Programme 2 — Split';
+  return 'Les deux programmes';
 }
 
 async function initialize(){
@@ -262,6 +290,8 @@ $('createBtn').addEventListener('click',async()=>{
 
   try{
     const days=getDays();
+    const programmes=getProgrammes();
+    const programmeLabel=getProgrammeLabel();
 
     const check=await db.rpc('jf_training_is_admin');
     if(check.error||check.data!==true){
@@ -270,7 +300,10 @@ $('createBtn').addEventListener('click',async()=>{
 
     const {data,error}=await db.rpc(
       'jf_training_create_invite',
-      {p_days:days}
+      {
+        p_days:days,
+        p_programmes:programmes
+      }
     );
 
     if(error)throw error;
@@ -293,7 +326,16 @@ $('createBtn').addEventListener('click',async()=>{
     url.searchParams.set('code',code);
     currentLink=url.href;
 
-    $('inviteResult').textContent=currentLink;
+    $('inviteResult').replaceChildren();
+
+    const description=document.createElement('p');
+    description.textContent='Accès : '+programmeLabel;
+    description.style.fontWeight='700';
+
+    const link=document.createElement('div');
+    link.textContent=currentLink;
+
+    $('inviteResult').append(description,link);
     show('resultBox',true);
 
     $('createStatus').textContent='Invitation créée.';
