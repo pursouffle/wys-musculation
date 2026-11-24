@@ -230,53 +230,139 @@ if(error)throw error;
 
 if(!data.session && navigator.onLine)await login();
 
-// Demande temporaire de changement d'adresse, sans bouton permanent.
+// Cycles independants : archivage distant avant remise a zero.
 
-if (new URLSearchParams(location.search).get('changer-email') === '1') {
+const isSplit = location.pathname.endsWith('/split.html');
+
+const program = isSplit ? 'split' : 'haut_bas';
+
+const belongs = k => isSplit ? k.startsWith('jf_split_') :
+
+k.startsWith('wys12_') || ['wys_week','wys_day'].includes(k);
+
+async function newCycle() {
+
+if (busy || blocked || !navigator.onLine) {
+
+alert('Sauvegarde indisponible. Reessaie dans un instant.'); return;
+
+}
+
+if (!confirm('Archiver ce cycle et repartir en semaine 1 ?')) return;
+
+busy = true;
+
+const cover = document.createElement('dialog');
+
+cover.textContent = 'Archivage et verification en cours...';
+
+cover.addEventListener('cancel', e => e.preventDefault());
+
+document.body.append(cover); cover.showModal();
 
 try {
 
-const {data: current, error: checkError} = await db.auth.getUser();
+const {data:auth,error:ae} = await db.auth.getUser();
 
-if (checkError) throw checkError;
+if (ae || !auth.user) throw Error('Connexion requise');
 
-if (current.user?.email === 'pursouffle@gmail.com') {
+const uid = auth.user.id, baseKey = 'jf_cloud_base_'+uid;
 
-const email = prompt('Nouvelle adresse e-mail JF Training :');
+const local = snapshot();
 
-if (email && confirm('Confirmer le changement vers ' + email.trim() + ' ?')) {
+const {data:r,error:re} = await db.from('jf_training_backup')
 
-const {error: changeError} = await db.auth.updateUser(
+.select('data,updated_at').eq('user_id',uid).single();
 
-{email: email.trim()},
+if (re) throw re;
 
-{emailRedirectTo: location.origin + '/wys-musculation/'});
+if (!equal(local,r.data)) throw Error('Attends la synchronisation puis reessaie.');
 
-if (changeError) throw changeError;
+const archive = Object.fromEntries(Object.entries(local)
 
-alert('Demande envoyee. Verifie les deux boites e-mail.');
+.filter(([k]) => belongs(k)));
+
+const prefix = 'jf_cycle_'+program+'_';
+
+const id = prefix+crypto.randomUUID();
+
+const next = {...local};
+
+next[id] = JSON.stringify({date:new Date().toISOString(),data:archive});
+
+// Conserver aussi une copie locale avant toute ecriture distante.
+
+localStorage.setItem('jf_cloud_cycle_recovery',JSON.stringify(local));
+
+for (const k of Object.keys(archive)) delete next[k];
+
+next[isSplit?'jf_split_week':'wys_week']='1';
+
+next[isSplit?'jf_split_day':'wys_day']='0';
+
+if (!equal(local,snapshot())) throw Error('Donnees modifiees. Reessaie.');
+
+const {data:saved,error:se} = await db.from('jf_training_backup')
+
+.update({data:next,updated_at:new Date().toISOString()})
+
+.eq('user_id',uid).eq('updated_at',r.updated_at)
+
+.select('data').single();
+
+if (se || !equal(saved?.data,next)) throw Error('Archivage non confirme');
+
+if (!equal(local,snapshot())) {
+
+blocked=true; throw Error('Donnees locales modifiees. Ne rien effacer.');
 
 }
 
-} else {
+// Ecrire l archive avant de retirer les anciennes saisies.
 
-alert('Adresse deja modifiee ou compte non reconnu.');
+localStorage.setItem(id,next[id]);
+
+for (const k of Object.keys(archive)) localStorage.removeItem(k);
+
+for (const [k,v] of Object.entries(next)) localStorage.setItem(k,v);
+
+localStorage.setItem(baseKey,JSON.stringify(next));
+
+location.reload();
+
+} catch(e) {
+
+alert('Cycle non termine : '+e.message);
+
+} finally { cover.close(); cover.remove(); busy=false; }
 
 }
 
-} catch (err) {
+function mountCycle() {
 
-alert('Changement impossible : ' + err.message);
+const exp=document.getElementById(isSplit?'splitExport':'export');
+
+if (!exp || document.getElementById('jfNewCycle')) return;
+
+const b=document.createElement('button');
+
+b.id='jfNewCycle'; b.type='button'; b.className='button ghost';
+
+b.style.cssText='width:100%;margin-top:8px';
+
+b.textContent='Nouveau cycle';
+
+b.onclick=newCycle;
+
+exp.after(b);
 
 }
 
-const url = new URL(location.href);
+mountCycle();
 
-url.searchParams.delete('changer-email');
+new MutationObserver(mountCycle).observe(document.querySelector('main'),
 
-history.replaceState(null, '', url.href);
-
-}
+{childList:true,subtree:true});
 
 await sync();
 
