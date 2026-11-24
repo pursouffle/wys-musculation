@@ -230,6 +230,54 @@ if(error)throw error;
 
 if(!data.session && navigator.onLine)await login();
 
+// Demande temporaire de changement d'adresse, sans bouton permanent.
+
+if (new URLSearchParams(location.search).get('changer-email') === '1') {
+
+try {
+
+const {data: current, error: checkError} = await db.auth.getUser();
+
+if (checkError) throw checkError;
+
+if (current.user?.email === 'pursouffle@gmail.com') {
+
+const email = prompt('Nouvelle adresse e-mail JF Training :');
+
+if (email && confirm('Confirmer le changement vers ' + email.trim() + ' ?')) {
+
+const {error: changeError} = await db.auth.updateUser(
+
+{email: email.trim()},
+
+{emailRedirectTo: location.origin + '/wys-musculation/'});
+
+if (changeError) throw changeError;
+
+alert('Demande envoyee. Verifie les deux boites e-mail.');
+
+}
+
+} else {
+
+alert('Adresse deja modifiee ou compte non reconnu.');
+
+}
+
+} catch (err) {
+
+alert('Changement impossible : ' + err.message);
+
+}
+
+const url = new URL(location.href);
+
+url.searchParams.delete('changer-email');
+
+history.replaceState(null, '', url.href);
+
+}
+
 await sync();
 
 setInterval(sync,5000);
