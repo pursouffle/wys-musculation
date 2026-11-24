@@ -208,15 +208,18 @@
     const text=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;dlg.append(el);return el;};
     const button=(label,fn)=>{const b=text('button',label);b.type='button';b.className='button ghost';b.style.cssText='display:block;width:100%;margin:8px 0;padding:12px;white-space:normal';b.onclick=fn;};
     const list=archives();
-    function home(){dlg.replaceChildren();text('h2','Gestion des cycles');text('p','Programme '+(isSplit?'2':'1')+' — Cycle en cours');button('Consulter les anciens cycles',()=>browse(false));button('Exporter un ancien cycle',()=>browse(true));button('Démarrer un nouveau cycle',()=>{dlg.close();newCycle();});button('Fermer',()=>dlg.close());}
-    function browse(exportOnly){dlg.replaceChildren();text('h2',exportOnly?'Exporter un cycle':'Anciens cycles');if(!list.length)text('p','Aucun cycle archivé sur cet appareil.');for(const a of list)button('Cycle archivé le '+archiveDate(a),()=>exportOnly?exportArchive(a):detail(a));button('Retour',home);}
-    function detail(a){dlg.replaceChildren();text('h2','Cycle du '+archiveDate(a));text('p','Lecture seule — aucune modification du cycle actuel.');const {series,other}=rowsFor(a);const days=isSplit?['Lundi','Mardi','Mercredi','Jeudi','Vendredi']:['Lundi','Mardi','Jeudi','Vendredi','Samedi'];if(!series.length)text('p','Aucune série enregistrée.');let last='';for(const r of series){const group=r.w+'_'+r.d+'_'+r.i;if(group!==last){text('h4','S'+r.w+' · '+days[r.d]+' · '+r.name);last=group;}text('p','Série '+(r.s+1)+' : '+(r.kg??'—')+' kg · '+(r.reps??'—')+' répétitions'+(r.done==='1'?' · Validée':''));}if(other.length){const details=text('details','');const summary=document.createElement('summary');summary.textContent='Autres résultats enregistrés';details.append(summary);for(const [k,v] of other){const line=document.createElement('p');line.textContent=k+' : '+v;line.style.overflowWrap='anywhere';details.append(line);}}button('Exporter ce cycle (CSV)',()=>exportArchive(a));button('Retour',()=>browse(false));button('Fermer',()=>dlg.close());}
+    function home(){dlg.replaceChildren();text('h2','Gestion des cycles');text('p','Programme '+(isSplit?'2':'1')+' — Cycle en cours');button('Ouvrir les anciens cycles',()=>browse());button('Démarrer un nouveau cycle',()=>{dlg.close();newCycle();});button('Fermer',()=>dlg.close());}
+    function browse(){dlg.replaceChildren();text('h2','Anciens cycles');if(!list.length)text('p','Aucun cycle archivé sur cet appareil.');for(const a of list)button('Cycle archivé le '+archiveDate(a),()=>detail(a));button('Retour',home);}
+    function detail(a){dlg.replaceChildren();text('h2','Cycle du '+archiveDate(a));text('p','Lecture seule — aucune modification du cycle actuel.');const {series,other}=rowsFor(a);const days=isSplit?['Lundi','Mardi','Mercredi','Jeudi','Vendredi']:['Lundi','Mardi','Jeudi','Vendredi','Samedi'];if(!series.length)text('p','Aucune série enregistrée.');let last='';for(const r of series){const group=r.w+'_'+r.d+'_'+r.i;if(group!==last){text('h4','S'+r.w+' · '+days[r.d]+' · '+r.name);last=group;}text('p','Série '+(r.s+1)+' : '+(r.kg??'—')+' kg · '+(r.reps??'—')+' répétitions'+(r.done==='1'?' · Validée':''));}if(other.length){const details=text('details','');const summary=document.createElement('summary');summary.textContent='Autres résultats enregistrés';details.append(summary);for(const [k,v] of other){const line=document.createElement('p');line.textContent=k+' : '+v;line.style.overflowWrap='anywhere';details.append(line);}}button('Exporter ce cycle (CSV)',()=>exportArchive(a));button('Retour',()=>browse());button('Fermer',()=>dlg.close());}
     home();dlg.showModal();
   }
 
   function mountCycle() {
     const exp=document.getElementById(isSplit?'splitExport':'export');
-    if (!exp || document.getElementById('jfNewCycle')) return;
+    if (!exp) return;
+    // Garder le bouton d'export comme point d'ancrage, mais le masquer.
+    exp.style.display='none';
+    if (document.getElementById('jfNewCycle')) return;
     const b=document.createElement('button');
     b.id='jfNewCycle'; b.type='button'; b.className='button ghost';
     b.style.cssText='width:100%;margin-top:8px';
