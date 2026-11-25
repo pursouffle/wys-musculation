@@ -440,7 +440,7 @@ if (!(await activateAccount(auth.user))) return;
 
 const account = document.createElement('div');
 
-account.style.cssText='position:fixed;top:calc(env(safe-area-inset-top, 0px) + 8px);right:8px;z-index:10000';
+account.style.cssText='display:flex;justify-content:flex-end;margin-top:8px';
 
 account.setAttribute('aria-label','Gestion du compte');
 
@@ -474,7 +474,7 @@ location.reload();
 
 account.append(change);
 
-document.body.append(account);
+(document.querySelector('header') || document.body).append(account);
 
 mountCycle();
 
