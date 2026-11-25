@@ -1,112 +1,136 @@
 
-(async function () {
+(function () {
   'use strict';
+
+  const PROGRAMMES = ['1', '2'];
+  const SUPABASE_URL = 'https://nycwwzrtpswsngsghgiz.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt';
 
   const programme = document.documentElement.dataset.jfProgramme;
 
-  if (!['1', '2'].includes(programme)) {
+  // Empêche l'affichage du programme pendant la vérification.
+  document.documentElement.style.visibility = 'hidden';
+
+  function afficherEcran(message, lien, destination) {
+    document.documentElement.style.visibility = 'visible';
     document.body.replaceChildren();
-    document.body.textContent = 'Configuration du programme manquante.';
-    return;
+
+    const fond = document.createElement('main');
+    fond.style.cssText =
+      'min-height:100vh;display:flex;align-items:center;' +
+      'justify-content:center;padding:20px;background:#f1f5f9;' +
+      'font-family:system-ui,sans-serif;color:#142337';
+
+    const carte = document.createElement('div');
+    carte.style.cssText =
+      'width:100%;max-width:390px;background:white;' +
+      'padding:25px;border-radius:16px;text-align:center;' +
+      'box-shadow:0 3px 15px #0001';
+
+    const titre = document.createElement('h2');
+    titre.textContent = '🐂 JF Training';
+
+    const texte = document.createElement('p');
+    texte.textContent = message;
+
+    carte.append(titre, texte);
+
+    if (lien && destination) {
+      const bouton = document.createElement('a');
+      bouton.href = destination;
+      bouton.textContent = lien;
+      bouton.style.cssText =
+        'display:block;background:#173e61;color:white;' +
+        'padding:12px;border-radius:10px;text-decoration:none;' +
+        'margin-top:15px;font-weight:bold';
+      carte.append(bouton);
+    }
+
+    fond.append(carte);
+    document.body.append(fond);
   }
 
-  const ecran = document.createElement('div');
-  ecran.id = 'jf-controle-acces';
-  ecran.style.cssText =
-    'position:fixed;inset:0;z-index:2147483647;' +
-    'background:#f1f5f9;color:#142337;' +
-    'font-family:system-ui,sans-serif;' +
-    'display:flex;align-items:center;justify-content:center;' +
-    'padding:20px;text-align:center';
+  async function verifierAcces() {
+    try {
+      if (!PROGRAMMES.includes(programme)) {
+        afficherEcran('Programme non configuré.');
+        return;
+      }
 
-  const contenu = document.createElement('div');
-  contenu.style.cssText =
-    'max-width:380px;background:white;padding:25px;' +
-    'border-radius:16px;width:100%';
+      const { createClient } = await import(
+        'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+      );
 
-  const titre = document.createElement('h2');
-  titre.textContent = '🐂 JF Training';
+      const db = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+          storageKey: 'jf-cloud-auth',
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
 
-  const message = document.createElement('p');
-  message.textContent = 'Vérification de ton accès…';
+      const { data: utilisateur, error: erreurUtilisateur } =
+        await db.auth.getUser();
 
-  contenu.append(titre, message);
-  ecran.append(contenu);
-  document.body.append(ecran);
+      if (erreurUtilisateur || !utilisateur.user) {
+        afficherEcran(
+          'Connecte-toi pour utiliser ton programme.',
+          'Connexion / Activation',
+          './invitation.html'
+        );
+        return;
+      }
 
-  try {
-    const { createClient } = await import(
-      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
-    );
+      const { data: autorise, error: erreurAcces } = await db.rpc(
+        'jf_training_can_access',
+        { p_programme: programme }
+      );
 
-    const db = createClient(
-      'https://nycwwzrtpswsngsghgiz.supabase.co',
-      'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',
-      { auth: { storageKey: 'jf-cloud-auth' } }
-    );
+      if (erreurAcces) throw erreurAcces;
 
-    const { data: auth, error: authError } = await db.auth.getUser();
+      if (autorise !== true) {
+        afficherEcran(
+          'Tu ne disposes pas d’un accès valide à ce programme.',
+          'Voir l’autre programme',
+          programme === '1' ? './split.html' : './index.html'
+        );
+        return;
+      }
 
-    if (authError || !auth.user) {
-      message.textContent =
-        'Connecte-toi pour accéder à ton programme.';
+      const { data: administrateur } = await db.rpc(
+        'jf_training_is_admin'
+      );
 
-      const lien = document.createElement('a');
-      lien.href = './invitation.html';
-      lien.textContent = 'Connexion / Activation';
-      lien.style.cssText =
-        'display:block;background:#173e61;color:white;' +
-        'padding:12px;border-radius:9px;text-decoration:none';
+      document.documentElement.style.visibility = 'visible';
 
-      contenu.append(lien);
-      return;
+      if (administrateur === true) {
+        const bouton = document.createElement('a');
+        bouton.href = './gestion-acces.html';
+        bouton.textContent = '🔐 Gestion des accès';
+        bouton.style.cssText =
+          'position:fixed;bottom:15px;left:15px;' +
+          'background:#173e61;color:white;padding:12px 16px;' +
+          'border-radius:12px;text-decoration:none;font-weight:bold;' +
+          'z-index:9999;box-shadow:0 3px 12px #0003';
+        document.body.append(bouton);
+      }
+
+    } catch (erreur) {
+      console.error('Erreur de contrôle JF Training :', erreur);
+      afficherEcran(
+        'Impossible de vérifier ton accès. Vérifie ta connexion Internet.',
+        'Réessayer',
+        window.location.href
+      );
     }
+  }
 
-    const { data: autorise, error } = await db.rpc(
-      'jf_training_can_access',
-      { p_programme: programme }
-    );
-
-    if (error) throw error;
-
-    if (autorise !== true) {
-      message.textContent =
-        'Tu ne disposes pas d’un accès valide à ce programme.';
-
-      const retour = document.createElement('a');
-      retour.href = programme === '1'
-        ? './split.html'
-        : './index.html';
-      retour.textContent = 'Voir l’autre programme';
-      retour.style.cssText =
-        'display:block;margin-top:12px;color:#173e61';
-
-      contenu.append(retour);
-      return;
-    }
-
-    const { data: admin, error: adminError } = await db.rpc(
-      'jf_training_is_admin'
-    );
-
-    if (!adminError && admin === true) {
-      const lien = document.createElement('a');
-      lien.href = './gestion-acces.html';
-      lien.textContent = '🔐 Gestion des accès';
-      lien.style.cssText =
-        'position:fixed;bottom:15px;left:15px;' +
-        'background:#173e61;color:white;padding:12px;' +
-        'border-radius:12px;text-decoration:none;' +
-        'font-weight:bold;z-index:9999;' +
-        'box-shadow:0 3px 12px #0003';
-      document.body.append(lien);
-    }
-
-    ecran.remove();
-
-  } catch (erreur) {
-    console.error('JF Training accès :', erreur);
-    message.textContent =
-      'Impossible de vérifier ton accès. Vérifie ta connexion et réessaie.';
+  // Attend que la structure HTML soit entièrement disponible.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', verifierAcces, {
+      once: true
+    });
+  } else {
+    verifierAcces();
   }
 })();
