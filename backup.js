@@ -35,6 +35,7 @@ const program = isSplit ? 'split' : 'haut_bas';
 const belongs = k => isSplit ? k.startsWith('jf_split_') : k.startsWith('wys12_') || ['wys_week','wys_day'].includes(k);
 
 
+
 // Each user gets a private local copy. Never automatically assign old browser data
 
 // to a new user: it may belong to the administrator or a previous member.
@@ -51,7 +52,7 @@ const owner = localStorage.getItem(marker);
 
 const old = snapshot();
 
-if (owner === uid) {
+if (owner === uid && localStorage.getItem('jf_restored_v3_'+uid) === '1') {
 
 userId = uid;
 
@@ -77,43 +78,42 @@ localStorage.setItem('jf_legacy_recovery_v2', JSON.stringify(old));
 
 const privateKey = 'jf_local_private_v2_' + uid;
 
-const privateData = readJSON(privateKey);
+const initial = readJSON(privateKey) || {};
 
-if (privateData && (typeof privateData !== 'object' || Array.isArray(privateData) ||
+const {data: row, error} = await db.from('jf_training_backup')
 
-Object.entries(privateData).some(([k,v]) => !relevant(k) || typeof v !== 'string'))) {
+.select('data').eq('user_id',uid).maybeSingle();
 
-blocked = true;
+if (error) throw error;
 
-warn('Sauvegarde locale invalide. Aucune donnée effacée.');
+const remote = row?.data || {};
 
-return false;
+if (Object.entries(remote).some(([k,v]) => !relevant(k) || typeof v !== 'string'))
 
-}
+throw Error('Sauvegarde distante invalide');
 
-// An account without its own saved local copy starts empty. The cloud may
+const recovery = 'jf_restore_recovery_v3_' + uid;
 
-// restore its data after verification, but other users' data are never copied.
+if (!localStorage.getItem(recovery))
 
-const initial = privateData || {};
+localStorage.setItem(recovery, JSON.stringify({local:old,private:initial}));
 
-store(initial);
+store(remote);
 
-localStorage.setItem(marker, uid);
+localStorage.setItem(marker,uid);
 
-localStorage.setItem(privateKey, JSON.stringify(initial));
+localStorage.setItem(privateKey,JSON.stringify(remote));
 
-userId = uid;
+localStorage.setItem('jf_cloud_base_'+uid,JSON.stringify(remote));
 
-lastUserId = uid;
-
-// Reload so the workout UI re-reads the correctly isolated localStorage.
+localStorage.setItem('jf_restored_v3_'+uid,'1');
 
 location.reload();
 
 return false;
 
 }
+
 
 
 async function sync() {
@@ -251,6 +251,7 @@ finally { busy = false; }
 }
 
 
+
 async function newCycle() {
 
 if (busy || blocked || !navigator.onLine) {
@@ -330,6 +331,7 @@ location.reload();
 finally { cover.close(); cover.remove(); busy = false; }
 
 }
+
 
 
 const splitNames = [["Développé couché barre", "Développé incliné haltères 30°", "Dips lestés", "Écartés à la poulie", "Chest press convergente", "Extension triceps au-dessus de la tête", "Extension triceps corde"], ["Squat barre chargé", "Hack squat", "Presse à cuisses", "Leg extension", "Fentes bulgares", "Mollets debout", "Mollets assis"], ["Tractions lestées", "Rowing poitrine appuyée", "Tirage vertical prise neutre", "Rowing unilatéral poulie", "Curl incliné haltères", "Curl pupitre", "Curl marteau"], ["Deadlift classique", "Hip thrust barre", "Leg curl assis", "Nordic curl assisté", "Leg curl allongé", "Abducteurs machine", "Crunch poulie haute", "Relevés de genoux suspendu"], ["Développé épaules machine", "Élévations latérales poulie", "Oiseau machine", "Face pull", "Développé incliné machine", "Rowing machine", "Pompes classiques"]];
@@ -429,11 +431,50 @@ const b=document.createElement('button');b.id='jfNewCycle';b.type='button';b.cla
 }
 
 
+
 const { data: auth, error } = await db.auth.getUser();
 
 if (error || !auth.user) return; // Login is handled by controle-acces.js.
 
 if (!(await activateAccount(auth.user))) return;
+
+const account = document.createElement('div');
+
+account.style.cssText='padding:10px;text-align:center;font-size:13px';
+
+const identity = document.createElement('span');
+
+identity.textContent = 'Compte : ' + (auth.user.email || '');
+
+const change = document.createElement('button');
+
+change.textContent = 'Changer de compte';
+
+change.style.cssText='margin:8px;padding:8px';
+
+change.onclick = async () => {
+
+if (busy || blocked) { alert('Sauvegarde en cours ou bloquée.'); return; }
+
+if (!confirm('Changer de compte ?')) return;
+
+await sync();
+
+if (blocked) return;
+
+busy = true;
+
+const {error} = await db.auth.signOut({scope:'local'});
+
+if (error) { busy=false; alert('Déconnexion impossible'); return; }
+
+location.reload();
+
+};
+
+account.append(identity,change);
+
+document.body.prepend(account);
 
 mountCycle();
 
