@@ -448,9 +448,9 @@ account.setAttribute('aria-label','Gestion du compte');
 
 const change = document.createElement('button');
 
-change.textContent = '↪';
+change.textContent = 'Déconnexion';
 
-change.title='Déconnexion'; change.setAttribute('aria-label','Déconnexion'); change.style.cssText='background:#173e61;color:white;border:1px solid #ffffff66;border-radius:10px;font-size:22px;cursor:pointer;width:44px;height:44px;display:grid;place-items:center';
+change.title='Déconnexion'; change.setAttribute('aria-label','Déconnexion'); change.style.cssText='background:#173e61;color:white;border:1px solid #ffffff66;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;width:auto;min-height:36px;padding:8px 10px;white-space:nowrap';
 
 change.onclick = async () => {
 
