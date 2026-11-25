@@ -440,7 +440,7 @@ if (!(await activateAccount(auth.user))) return;
 
 const account = document.createElement('div');
 
-account.style.cssText='padding:6px 12px;text-align:right;font-size:12px';
+account.style.cssText='position:fixed;top:calc(env(safe-area-inset-top, 0px) + 8px);right:8px;z-index:10000';
 
 account.setAttribute('aria-label','Gestion du compte');
 
@@ -448,9 +448,9 @@ account.setAttribute('aria-label','Gestion du compte');
 
 const change = document.createElement('button');
 
-change.textContent = 'Déconnexion';
+change.textContent = '↪';
 
-change.style.cssText='background:transparent;border:0;color:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px';
+change.title='Déconnexion'; change.setAttribute('aria-label','Déconnexion'); change.style.cssText='background:#173e61;color:white;border:1px solid #ffffff66;border-radius:10px;font-size:22px;cursor:pointer;width:44px;height:44px;display:grid;place-items:center';
 
 change.onclick = async () => {
 
