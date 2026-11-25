@@ -1,164 +1,207 @@
-
 <!doctype html>
+
 <html lang="fr">
+
 <head>
+
 <meta charset="utf-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Invitation — JF Training</title>
+
 <style>
+
 *{box-sizing:border-box}
+
 body{margin:0;background:#f1f5f9;color:#142337;font-family:system-ui,sans-serif}
+
 header{background:#13273a;color:white;padding:22px 16px}
+
 main{max-width:650px;margin:auto;padding:16px}
+
 .card{background:white;border:1px solid #dbe4ee;border-radius:15px;padding:20px;margin:14px 0}
-h1{margin:0;font-size:24px}
-h2{font-size:20px}
+
+h1{margin:0;font-size:24px}h2{font-size:20px}
+
 button,input{font:inherit;padding:13px;border-radius:9px}
+
 button{background:#173e61;color:white;border:0;width:100%;cursor:pointer}
+
 button:disabled{opacity:.5}
+
 input{width:100%;border:1px solid #ccd7e2;margin:10px 0}
+
 .small{font-size:14px;color:#52667d;line-height:1.5}
-.error{color:#b42318}
-.success{color:#147c66}
-.hidden{display:none!important}
+
+.error{color:#b42318}.success{color:#147c66}.hidden{display:none!important}
+
+.details{background:#f1f5f9;border-radius:12px;padding:15px;margin-top:14px;line-height:1.7}
+
+.program-link{display:block;background:#173e61;color:white;text-align:center;text-decoration:none;padding:13px;border-radius:9px;margin:10px 0}
+
 </style>
+
 </head>
+
 <body>
-<header>
-<h1>🐂 JF Training</h1>
-<div>Invitation personnelle</div>
-</header>
+
+<header><h1>🐂 JF Training</h1><div>Invitation personnelle</div></header>
+
 <main>
+
 <section class="card">
+
 <h2>Bienvenue sur JF Training 💪</h2>
-<p>Tu as reçu une invitation pour accéder aux programmes d'entraînement.</p>
+
+<p>Tu as reçu une invitation pour accéder à un programme d'entraînement.</p>
+
 <p id="status" role="status">Vérification de ton invitation…</p>
+
+<div id="inviteDetails" class="details hidden" aria-live="polite"></div>
+
 </section>
 
 <section id="loginBox" class="card hidden">
+
 <h2>Connexion</h2>
+
 <p class="small">Entre ton adresse e-mail personnelle pour recevoir un lien de connexion.</p>
+
 <form id="loginForm">
+
 <label for="email">Adresse e-mail</label>
+
 <input id="email" type="email" autocomplete="email" required>
+
 <button id="loginBtn" type="submit">Recevoir mon lien de connexion</button>
-</form>
-<p id="loginStatus" role="status"></p>
+
+</form><p id="loginStatus" role="status"></p>
+
 </section>
 
 <section id="activateBox" class="card hidden">
+
 <h2>Activer mon invitation</h2>
-<p class="small">Ton invitation sera associée à ton compte personnel.</p>
+
+<p class="small">Ton invitation sera associée à ton compte personnel. La durée d'accès commencera à l'activation.</p>
+
 <button id="activateBtn" type="button">Activer mon accès</button>
+
 </section>
 
 <section id="successBox" class="card hidden">
+
 <h2 class="success">Accès activé ! ✅</h2>
+
 <p>Tu peux maintenant accéder à JF Training.</p>
-<a href="./index.html">Ouvrir mes entraînements</a>
+
+<div id="accessDetails" class="details" aria-live="polite"></div>
+
+<div id="programLinks"></div>
+
 </section>
+
 </main>
 
 <script type="module">
-import {createClient} from
-'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const db=createClient(
-'https://nycwwzrtpswsngsghgiz.supabase.co',
-'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',
-{auth:{storageKey:'jf-cloud-auth'}}
-);
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const db=createClient('https://nycwwzrtpswsngsghgiz.supabase.co','sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',{auth:{storageKey:'jf-cloud-auth'}});
 
 const $=id=>document.getElementById(id);
+
 const show=(id,yes)=>$(id).classList.toggle('hidden',!yes);
+
 const code=new URLSearchParams(location.search).get('code')||'';
 
-function message(text,error=false){
-  $('status').textContent=text;
-  $('status').className=error?'error':'';
-}
+let inviteInfo=null;
+
+const names={'1':'Programme 1 — Haut / Bas','2':'Programme 2 — Split'};
+
+function message(text,error=false){$('status').textContent=text;$('status').className=error?'error':'';}
+
+function labels(programmes){return (Array.isArray(programmes)?programmes:[]).filter(p=>names[p]).map(p=>names[p]);}
+
+function dateFR(value){if(!value)return 'Accès illimité';const d=new Date(value);return Number.isNaN(d.getTime())?'Date indisponible':new Intl.DateTimeFormat('fr-FR',{dateStyle:'long',timeStyle:'short',timeZone:'Europe/Paris'}).format(d);}
+
+function line(parent,label,value){const p=document.createElement('div');const strong=document.createElement('strong');strong.textContent=label+' ';p.append(strong,document.createTextNode(value));parent.append(p);}
+
+function displayInvite(info){const box=$('inviteDetails');box.replaceChildren();const progs=labels(info.programmes);line(box,'Programme autorisé :',progs.join(' + ')||'Non renseigné');line(box,"Durée d'accès :",Number.isInteger(info.duree_jours)?info.duree_jours+' jour'+(info.duree_jours>1?'s':''):'Illimitée');line(box,"Invitation à activer avant le :",info.date_expiration?dateFR(info.date_expiration):'Sans date limite');show('inviteDetails',true);}
 
 async function initialize(){
-  if(!/^[a-f0-9]{48}$/i.test(code)){
-    message("Ce lien d'invitation est incomplet ou invalide.",true);
-    return;
-  }
 
-  try{
-    const {data,error}=await db.rpc('jf_training_check_invite',{
-      p_code:code
-    });
-    if(error)throw error;
+if(!/^[a-f0-9]{48}$/i.test(code)){message("Ce lien d'invitation est incomplet ou invalide.",true);return;}
 
-    if(data!==true){
-      message("Cette invitation n'est plus valide ou a expiré.",true);
-      return;
-    }
+try{
 
-    const {data:auth}=await db.auth.getUser();
-    if(!auth.user){
-      message("Invitation valide. Connecte-toi pour l'activer.");
-      show('loginBox',true);
-    }else{
-      message("Invitation valide. Tu peux activer ton accès.");
-      show('activateBox',true);
-    }
-  }catch(e){
-    console.error(e);
-    message("Impossible de vérifier l'invitation pour le moment.",true);
-  }
+const {data,error}=await db.rpc('jf_training_invite_details',{p_code:code});if(error)throw error;
+
+const info=Array.isArray(data)?data[0]:null;
+
+if(!info){message("Cette invitation n'est plus valide ou a expiré.",true);return;}
+
+inviteInfo=info;displayInvite(info);
+
+const {data:auth,error:authError}=await db.auth.getUser();
+
+if(authError||!auth.user){message("Invitation valide. Connecte-toi pour l'activer.");show('loginBox',true);}
+
+else{message("Invitation valide. Tu peux activer ton accès.");show('activateBox',true);}
+
+}catch(e){console.error(e);message("Impossible de vérifier l'invitation pour le moment.",true);}
+
 }
 
 $('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  $('loginBtn').disabled=true;
-  $('loginStatus').textContent='Envoi en cours…';
 
-  try{
-    const {error}=await db.auth.signInWithOtp({
-      email:$('email').value.trim(),
-      options:{emailRedirectTo:location.href}
-    });
-    if(error)throw error;
+e.preventDefault();$('loginBtn').disabled=true;$('loginStatus').textContent='Envoi en cours…';
 
-    $('loginStatus').textContent=
-      "Vérifie tes e-mails et ouvre le lien reçu.";
-    $('loginStatus').className='success';
-  }catch(e){
-    console.error(e);
-    $('loginStatus').textContent=
-      "Impossible d'envoyer le lien de connexion.";
-    $('loginStatus').className='error';
-    $('loginBtn').disabled=false;
-  }
+try{const {error}=await db.auth.signInWithOtp({email:$('email').value.trim(),options:{emailRedirectTo:location.href}});if(error)throw error;$('loginStatus').textContent='Vérifie tes e-mails et ouvre le lien reçu.';$('loginStatus').className='success';}
+
+catch(e){console.error(e);$('loginStatus').textContent="Impossible d'envoyer le lien de connexion.";$('loginStatus').className='error';$('loginBtn').disabled=false;}
+
 });
 
 $('activateBtn').addEventListener('click',async()=>{
-  $('activateBtn').disabled=true;
-  message("Activation en cours…");
 
-  try{
-    const {data,error}=await db.rpc(
-      'jf_training_activate_invite',
-      {p_code:code}
-    );
-    if(error)throw error;
-    if(data!==true){
-      throw Error("Invitation expirée ou déjà utilisée.");
-    }
+$('activateBtn').disabled=true;message('Activation en cours…');
 
-    show('activateBox',false);
-    show('loginBox',false);
-    show('successBox',true);
-    message("Ton accès personnel est activé.");
-  }catch(e){
-    console.error(e);
-    message(e.message||"Activation impossible.",true);
-    $('activateBtn').disabled=false;
-  }
+try{
+
+const {data,error}=await db.rpc('jf_training_activate_invite',{p_code:code});if(error)throw error;
+
+if(data!==true)throw Error('Invitation expirée ou déjà utilisée.');
+
+show('activateBox',false);show('loginBox',false);show('inviteDetails',false);
+
+const {data:access,error:accessError}=await db.from('jf_training_access').select('programmes,expires_at').eq('user_id',(await db.auth.getUser()).data.user.id).single();
+
+if(accessError)throw accessError;
+
+const detail=$('accessDetails');detail.replaceChildren();
+
+const programs=labels(access.programmes);
+
+line(detail,'Programme autorisé :',programs.join(' + ')||'Non renseigné');
+
+line(detail,"Fin de l'accès :",dateFR(access.expires_at));
+
+const links=$('programLinks');links.replaceChildren();
+
+for(const p of access.programmes||[]){if(!names[p])continue;const a=document.createElement('a');a.className='program-link';a.href=p==='1'?'./index.html':'./split.html';a.textContent='Ouvrir '+names[p];links.append(a);}
+
+show('successBox',true);message('Ton accès personnel est activé.');
+
+}catch(e){console.error(e);message(e.message||'Activation impossible.',true);$('activateBtn').disabled=false;}
+
 });
 
 initialize();
+
 </script>
+
 </body>
+
 </html>
