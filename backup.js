@@ -440,17 +440,17 @@ if (!(await activateAccount(auth.user))) return;
 
 const account = document.createElement('div');
 
-account.style.cssText='padding:10px;text-align:center;font-size:13px';
+account.style.cssText='padding:6px 12px;text-align:right;font-size:12px';
 
-const identity = document.createElement('span');
+account.setAttribute('aria-label','Gestion du compte');
 
-identity.textContent = 'Compte : ' + (auth.user.email || '');
+// Adresse e-mail non affichee.
 
 const change = document.createElement('button');
 
-change.textContent = 'Changer de compte';
+change.textContent = 'Déconnexion';
 
-change.style.cssText='margin:8px;padding:8px';
+change.style.cssText='background:transparent;border:0;color:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:4px';
 
 change.onclick = async () => {
 
@@ -472,9 +472,9 @@ location.reload();
 
 };
 
-account.append(identity,change);
+account.append(change);
 
-document.body.prepend(account);
+document.body.append(account);
 
 mountCycle();
 
