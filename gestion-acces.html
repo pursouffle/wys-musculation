@@ -1,386 +1,273 @@
-
 <!doctype html>
+
 <html lang="fr">
+
 <head>
+
 <meta charset="utf-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Gestion des accès — JF Training</title>
+
 <style>
+
 *{box-sizing:border-box}
+
 body{margin:0;background:#f1f5f9;color:#142337;font-family:system-ui,sans-serif}
+
 header{background:#13273a;color:white;padding:22px 16px}
+
 main{max-width:650px;margin:auto;padding:15px}
-h1{font-size:23px;margin:0}
-h2{font-size:19px;margin-top:0}
+
+h1{font-size:23px;margin:0} h2{font-size:19px;margin-top:0}
+
 .card{background:white;border:1px solid #dbe4ee;border-radius:15px;padding:18px;margin:13px 0}
+
 button,select,input{font:inherit;padding:12px;border-radius:9px}
+
 button{background:#173e61;color:white;border:0;cursor:pointer}
+
 button:disabled{opacity:.5}
+
 select,input{width:100%;border:1px solid #ccd7e2;background:white;margin:8px 0}
-label{font-weight:650}
-.secondary{background:#edf3f9;color:#173e61}
-.small{color:#52667d;font-size:13px;line-height:1.5}
-.error{color:#b42318}
-.success{color:#147c66}
-#inviteResult{overflow-wrap:anywhere;background:#f0f6ff;padding:12px;border-radius:9px}
-.hidden{display:none!important}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-.actions button{flex:1}
+
+label{font-weight:650}.small{color:#52667d;font-size:13px;line-height:1.5}
+
+.hidden{display:none!important}.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.actions button{flex:1}.danger{background:#a62929}.secondary{background:#edf3f9;color:#173e61}
+
+.item{border:1px solid #dbe4ee;border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
+
+.good{color:#147c66}.bad{color:#b42318}#inviteResult{overflow-wrap:anywhere}
+
 </style>
+
 </head>
+
 <body>
-<header>
-<div style="max-width:650px;margin:auto">
-<h1>🐂 JF Training</h1>
-<div>Gestion des accès</div>
-</div>
-</header>
+
+<header><h1>JF Training</h1>Gestion des accès</header>
+
 <main>
+
 <p><a href="./index.html">← Retour à mes entraînements</a></p>
 
-<section class="card" id="loading">
-<p>Vérification de ton compte administrateur…</p>
-</section>
+<p id="status" role="status">Vérification du compte…</p>
 
-<section class="card hidden" id="loginBox">
+<section class="card hidden" id="login">
+
 <h2>Connexion administrateur</h2>
-<p class="small">Connecte-toi avec ton adresse e-mail JF Training.</p>
-<form id="loginForm">
-<label for="email">Adresse e-mail</label>
-<input id="email" type="email" autocomplete="email" required>
-<button type="submit" id="loginBtn">Recevoir mon lien de connexion</button>
-</form>
-<p id="loginStatus" role="status"></p>
-</section>
 
-<section class="card hidden" id="denied">
-<h2>Accès réservé</h2>
-<p>Cette page est réservée à l'administrateur de JF Training.</p>
-</section>
+<form id="loginForm"><input id="email" type="email" required placeholder="Adresse e-mail">
+
+<button>Recevoir mon lien de connexion</button></form></section>
 
 <div id="admin" class="hidden">
-<section class="card">
-<h2>👥 Inviter un ami</h2>
-<p class="small">
-Chaque invitation est destinée à une seule personne
-et ne peut être activée qu'une fois.
-</p>
+
+<section class="card"><h2>Inviter un ami</h2>
+
+<p class="small">Invitation personnelle, utilisable une seule fois.</p>
 
 <label for="programmes">Programme à partager</label>
-<select id="programmes">
-<option value="1">🏋️ Programme 1 — Haut / Bas</option>
-<option value="2">💪 Programme 2 — Split</option>
-<option value="both">🔥 Les deux programmes</option>
-</select>
-<p class="small">
-Ton ami recevra uniquement l'autorisation correspondant
-au programme choisi.
-</p>
+
+<select id="programmes"><option value="1">Programme 1 — Haut / Bas</option>
+
+<option value="2">Programme 2 — Split</option><option value="both">Les deux programmes</option></select>
 
 <label for="duration">Durée de l'accès</label>
-<select id="duration">
-<option value="7">7 jours</option>
-<option value="90">90 jours</option>
-<option value="0">Illimitée</option>
-<option value="custom">📅 Date personnalisée</option>
-</select>
 
-<div id="customDateBox" class="hidden">
-<label for="customDate">Choisir la date de fin d'accès</label>
-<input id="customDate" type="date">
-<p class="small">
-L'accès sera calculé en jours à partir de la création
-de l'invitation. La date effective pourra être
-légèrement différente de la date choisie.
-</p>
-</div>
+<select id="duration"><option value="7">7 jours</option><option value="90">90 jours</option>
 
-<button id="createBtn" type="button" style="width:100%">
-Créer une invitation
-</button>
+<option value="0">Illimitée</option><option value="custom">Date personnalisée</option></select>
+
+<input type="date" id="customDate" class="hidden">
+
+<button id="create" style="width:100%">Créer une invitation</button>
+
 <p id="createStatus" role="status"></p>
 
-<div id="resultBox" class="hidden">
-<h3>Invitation créée</h3>
-<p class="small">
-Transmets ce lien uniquement à la personne invitée.
-</p>
-<div id="inviteResult"></div>
-<div class="actions" style="margin-top:12px">
-<button id="copyBtn" type="button">Copier le lien</button>
-<button id="shareBtn" type="button" class="secondary">Partager</button>
-</div>
-<p class="small">Conserve ce lien jusqu'à son utilisation.</p>
-</div>
+<div id="result" class="hidden"><p id="inviteResult"></p><div class="actions">
+
+<button id="copy">Copier le lien</button><button id="share">Partager</button></div></div>
+
 </section>
 
-<section class="card">
-<h2>🔐 Gestion des autorisations</h2>
-<p>
-Tu pourras désactiver un ami ou prolonger son accès
-depuis cette rubrique.
-</p>
-<p class="small">
-La liste des membres sera activée après vérification
-de la fonction Supabase qui permet à l'administrateur
-de les consulter. Aucun accès existant n'est modifié ici.
-</p>
-</section>
-</div>
-</main>
+<section class="card"><h2>Gestion des autorisations</h2>
+
+<button id="refresh" class="secondary">Actualiser</button>
+
+<p id="listStatus" role="status"></p><div id="members"></div></section>
+
+<section class="card"><h2>Historique des invitations</h2>
+
+<p class="small">Le destinataire n'est pas enregistré dans les invitations.</p>
+
+<div id="invites"></div></section></div></main>
 
 <script type="module">
-import {createClient} from
-'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const db=createClient(
-'https://nycwwzrtpswsngsghgiz.supabase.co',
-'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',
-{auth:{storageKey:'jf-cloud-auth'}}
-);
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const db=createClient('https://nycwwzrtpswsngsghgiz.supabase.co',
+
+'sb_publishable_AMFCbul5u3fkOBEQSCN8-Q_3AHabftt',{auth:{storageKey:'jf-cloud-auth'}});
 
 const $=id=>document.getElementById(id);
-const show=(id,visible)=>$(id).classList.toggle('hidden',!visible);
-let currentLink='';
 
-function localDateString(date){
-  const y=date.getFullYear();
-  const m=String(date.getMonth()+1).padStart(2,'0');
-  const d=String(date.getDate()).padStart(2,'0');
-  return `${y}-${m}-${d}`;
+const show=(id,v)=>$(id).classList.toggle('hidden',!v);
+
+const msg=(id,t)=>$(id).textContent=t;
+
+async function rpc(name,args={}){
+
+const {data,error}=await db.rpc(name,args);if(error)throw error;return data;
+
 }
 
-function updateDuration(){
-  const custom=$('duration').value==='custom';
-  show('customDateBox',custom);
+async function check(){if(await rpc('jf_training_is_admin')!==true)throw Error('Accès administrateur requis');}
 
-  if(custom){
-    const tomorrow=new Date();
-    tomorrow.setDate(tomorrow.getDate()+1);
-    $('customDate').min=localDateString(tomorrow);
+const date=v=>v?new Date(v).toLocaleString('fr-FR'):'Illimitée';
 
-    if(!$('customDate').value ||
-       $('customDate').value<$('customDate').min){
-      $('customDate').value=$('customDate').min;
-    }
-  }
+const expired=v=>v!=null&&new Date(v).getTime()<=Date.now();
+
+const programs=p=>Array.isArray(p)?p.map(x=>String(x)==='1'?'Programme 1 — Haut / Bas':String(x)==='2'?'Programme 2 — Split':String(x)).join(' / '):'Non renseigné';
+
+function el(parent,tag,text,cls){const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;parent.append(n);return n;}
+
+function button(parent,label,fn,cls){const b=el(parent,'button',label,cls);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){msg('listStatus',e.message);}finally{b.disabled=false;}};return b;}
+
+async function manage(m,enabled,end){
+
+await check();
+
+const ok=await rpc('jf_training_manage_member',{p_user_id:m.user_id,p_enabled:enabled,p_expires_at:end});
+
+if(ok!==true)throw Error('Modification non confirmée');await load();
+
 }
 
-$('duration').addEventListener('change',updateDuration);
-updateDuration();
+function member(m){
 
-function getDays(){
-  const selected=$('duration').value;
+const card=el($('members'),'div','','item');
 
-  if(selected==='0')return null;
-  if(selected!=='custom')return Number(selected);
+el(card,'strong',m.email||m.user_id);
 
-  const value=$('customDate').value;
-  if(!value)throw Error('Choisis une date de fin.');
+el(card,'p',programs(m.programmes));
 
-  const [year,month,day]=value.split('-').map(Number);
-  const target=new Date(year,month-1,day,23,59,59,999);
+const state=!m.enabled?'Désactivé':expired(m.expires_at)?'Expiré':'Actif';
 
-  if(
-    target.getFullYear()!==year ||
-    target.getMonth()!==month-1 ||
-    target.getDate()!==day
-  ){
-    throw Error('Date invalide.');
-  }
+el(card,'p',state,state==='Actif'?'good':'bad');
 
-  const difference=target.getTime()-Date.now();
-  const days=Math.ceil(difference/86400000);
+el(card,'p','Début : '+date(m.created_at),'small');
 
-  if(days<1)throw Error('Choisis une date future.');
-  if(days>3650)throw Error('La durée maximale est de 3650 jours.');
+el(card,'p','Fin : '+date(m.expires_at),'small');
 
-  return days;
-}
+if(state==='Actif'&&m.expires_at)el(card,'p',Math.ceil((new Date(m.expires_at)-Date.now())/86400000)+' jour(s) restant(s)');
 
-function getProgrammes(){
-  const selected=$('programmes').value;
+const actions=el(card,'div','','actions');
 
-  if(selected==='1')return ['1'];
-  if(selected==='2')return ['2'];
-  if(selected==='both')return ['1','2'];
+if(m.enabled)button(actions,'Désactiver',async()=>{if(confirm('Désactiver cet accès ?'))await manage(m,false,m.expires_at);},'danger');
 
-  throw Error('Choisis un programme.');
-}
+if(!m.enabled&&!expired(m.expires_at))button(actions,'Réactiver',async()=>{if(confirm('Réactiver cet accès ?'))await manage(m,true,m.expires_at);});
 
-function getProgrammeLabel(){
-  const selected=$('programmes').value;
+if(m.expires_at||!m.enabled)button(actions,state==='Actif'?'Prolonger':'Renouveler',async()=>{
 
-  if(selected==='1')return 'Programme 1 — Haut / Bas';
-  if(selected==='2')return 'Programme 2 — Split';
-  return 'Les deux programmes';
-}
+const v=prompt('Nombre de jours supplémentaires (1 à 3650) :','30');if(v===null)return;
 
-async function initialize(){
-  show('loading',true);
-  show('loginBox',false);
-  show('denied',false);
-  show('admin',false);
+const n=Number(v);if(!Number.isInteger(n)||n<1||n>3650)throw Error('Durée invalide');
 
-  try{
-    const {data,error}=await db.auth.getUser();
+const end=new Date(Math.max(Date.now(),m.expires_at?new Date(m.expires_at).getTime():0)+n*86400000).toISOString();
 
-    if(error||!data.user){
-      show('loginBox',true);
-      return;
-    }
+if(confirm('Nouvelle fin : '+date(end)+' — confirmer ?'))await manage(m,true,end);
 
-    const result=await db.rpc('jf_training_is_admin');
-    if(result.error)throw result.error;
-
-    if(result.data===true){
-      show('admin',true);
-    }else{
-      show('denied',true);
-    }
-  }catch(e){
-    console.error(e);
-    $('loading').textContent=
-      'Impossible de vérifier les autorisations. Réessaie en actualisant la page.';
-    return;
-  }finally{
-    if(!$('loading').textContent.includes('Impossible')){
-      show('loading',false);
-    }
-  }
-}
-
-$('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-
-  const button=$('loginBtn');
-  button.disabled=true;
-  $('loginStatus').textContent='Envoi en cours…';
-
-  try{
-    const {error}=await db.auth.signInWithOtp({
-      email:$('email').value.trim(),
-      options:{
-        emailRedirectTo:location.origin+location.pathname
-      }
-    });
-
-    if(error)throw error;
-
-    $('loginStatus').textContent=
-      'Vérifie tes e-mails et ouvre le lien reçu.';
-    $('loginStatus').className='success';
-  }catch(e){
-    console.error(e);
-    $('loginStatus').textContent=
-      "Impossible d'envoyer le lien de connexion.";
-    $('loginStatus').className='error';
-  }finally{
-    button.disabled=false;
-  }
 });
 
-$('createBtn').addEventListener('click',async()=>{
-  const button=$('createBtn');
-  button.disabled=true;
-  currentLink='';
-  show('resultBox',false);
-  $('createStatus').textContent='Création en cours…';
-  $('createStatus').className='';
+}
 
-  try{
-    const days=getDays();
-    const programmes=getProgrammes();
-    const programmeLabel=getProgrammeLabel();
+function invite(i){
 
-    const check=await db.rpc('jf_training_is_admin');
-    if(check.error||check.data!==true){
-      throw Error('Compte administrateur requis');
-    }
+const card=el($('invites'),'div','','item');
 
-    const {data,error}=await db.rpc(
-      'jf_training_create_invite',
-      {
-        p_days:days,
-        p_programmes:programmes
-      }
-    );
+const state=i.used_at?'Activée':i.revoked_at?'Annulée':expired(i.expires_at)?'Expirée':'En attente';
 
-    if(error)throw error;
+el(card,'strong',state);el(card,'p',programs(i.programmes));
 
-    let code=null;
+el(card,'p','Créée : '+date(i.created_at),'small');
 
-    if(typeof data==='string'){
-      code=data;
-    }else if(data&&typeof data==='object'){
-      code=data.code||data.invite_code||data.token||null;
-    }
+el(card,'p','Validité du lien : '+date(i.expires_at),'small');
 
-    if(typeof code!=='string'||!/^[a-f0-9]{48}$/i.test(code)){
-      $('createStatus').textContent=
-        "La demande a été traitée, mais le format du code doit être vérifié.";
-      return;
-    }
+el(card,'p','Durée prévue : '+(i.duree_acces_jours==null?'Illimitée':i.duree_acces_jours+' jours'),'small');
 
-    const url=new URL('./invitation.html',location.href);
-    url.searchParams.set('code',code);
-    currentLink=url.href;
+if(i.used_at)el(card,'p','Activée le : '+date(i.used_at),'small');
 
-    $('inviteResult').replaceChildren();
+if(state==='En attente')button(card,'Annuler le lien',async()=>{
 
-    const description=document.createElement('p');
-    description.textContent='Accès : '+programmeLabel;
-    description.style.fontWeight='700';
+if(!confirm('Annuler cette invitation ?'))return;await check();
 
-    const link=document.createElement('div');
-    link.textContent=currentLink;
+if(await rpc('jf_training_revoke_invite',{p_invite_id:i.id})!==true)throw Error('Annulation non confirmée');await load();},'danger');
 
-    $('inviteResult').append(description,link);
-    show('resultBox',true);
+}
 
-    $('createStatus').textContent='Invitation créée.';
-    $('createStatus').className='success';
+async function load(){
 
-  }catch(e){
-    console.error(e);
-    $('createStatus').textContent=
-      'Création impossible : '+e.message;
-    $('createStatus').className='error';
-  }finally{
-    button.disabled=false;
-  }
-});
+$('refresh').disabled=true;msg('listStatus','Chargement…');
 
-$('copyBtn').addEventListener('click',async()=>{
-  if(!currentLink)return;
+$('members').replaceChildren();$('invites').replaceChildren();
 
-  try{
-    await navigator.clipboard.writeText(currentLink);
-    $('createStatus').textContent='Lien copié.';
-  }catch(e){
-    $('createStatus').textContent=
-      'Sélectionne le lien affiché pour le copier.';
-  }
-});
+try{await check();const [m,i]=await Promise.all([rpc('jf_training_list_members'),rpc('jf_training_list_invites')]);
 
-$('shareBtn').addEventListener('click',async()=>{
-  if(!currentLink)return;
+const members=m.filter(x=>x.role==='member');
 
-  if(navigator.share){
-    try{
-      await navigator.share({
-        title:'Invitation JF Training',
-        text:'Voici ton invitation personnelle JF Training.',
-        url:currentLink
-      });
-    }catch(e){}
-  }else{
-    $('createStatus').textContent=
-      'Utilise le bouton Copier le lien.';
-  }
-});
+if(!members.length)el($('members'),'p','Aucun membre.');else members.forEach(member);
 
-initialize();
+if(!i.length)el($('invites'),'p','Aucune invitation.');else i.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).forEach(invite);
+
+msg('listStatus',members.length+' membre(s)');
+
+}catch(e){msg('listStatus','Erreur : '+e.message);}finally{$('refresh').disabled=false;}
+
+}
+
+$('refresh').onclick=load;
+
+$('duration').onchange=()=>show('customDate',$('duration').value==='custom');
+
+let link='';
+
+$('create').onclick=async()=>{
+
+$('create').disabled=true;show('result',false);link='';
+
+try{await check();let d=$('duration').value;let days=d==='0'?null:Number(d);
+
+if(d==='custom'){const v=$('customDate').value;days=Math.ceil((new Date(v+'T23:59:59').getTime()-Date.now())/86400000);if(!Number.isInteger(days)||days<1||days>3650)throw Error('Date future requise');}
+
+const p=$('programmes').value;const data=await rpc('jf_training_create_invite',{p_days:days,p_programmes:p==='both'?['1','2']:[p]});
+
+const code=typeof data==='string'?data:data?.code||data?.invite_code||data?.token;
+
+if(typeof code!=='string'||!/^[a-f0-9]{48}$/i.test(code))throw Error('Format du code à vérifier');
+
+const url=new URL('./invitation.html',location.href);url.searchParams.set('code',code);link=url.href;
+
+msg('inviteResult',link);show('result',true);msg('createStatus','Invitation créée.');await load();
+
+}catch(e){msg('createStatus',e.message);}finally{$('create').disabled=false;}
+
+};
+
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(link);msg('createStatus','Lien copié.');}catch{msg('createStatus','Copie le lien affiché.');}};
+
+$('share').onclick=async()=>{if(navigator.share){try{await navigator.share({title:'Invitation JF Training',url:link});}catch{}}else msg('createStatus','Utilise Copier le lien.');};
+
+$('loginForm').onsubmit=async e=>{e.preventDefault();try{const {error}=await db.auth.signInWithOtp({email:$('email').value.trim(),options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});if(error)throw error;msg('status','Ouvre le lien reçu par e-mail.');}catch(e){msg('status',e.message);}};
+
+try{const {data}=await db.auth.getUser();if(!data.user){show('login',true);msg('status','Connexion requise.');}else{await check();show('admin',true);msg('status','');await load();}}catch(e){msg('status',e.message);}
+
 </script>
+
 </body>
+
 </html>
