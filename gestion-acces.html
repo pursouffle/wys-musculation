@@ -98,13 +98,21 @@ label{font-weight:650}.small{color:#52667d;font-size:13px;line-height:1.5}
 
 <button id="refresh" class="secondary">Actualiser</button>
 
-<p id="listStatus" role="status"></p><div id="members"></div></section>
+<p id="listStatus" role="status"></p><h2>Membres actifs</h2><div id="members"></div></section>
 
-<section class="card"><h2>Historique des invitations</h2>
+<section class="card"><h2>Invitations en attente</h2>
 
-<p class="small">Le destinataire n'est pas enregistré dans les invitations.</p>
+<p class="small">Liens encore utilisables. Le destinataire n'est pas enregistré.</p>
 
-<div id="invites"></div></section></div></main>
+<div id="pending"></div></section>
+
+<section class="card"><h2>Membres désactivés ou expirés</h2><div id="inactive"></div></section>
+
+<section class="card"><details><summary style="font-weight:700;cursor:pointer">Historique des invitations</summary>
+
+<p class="small">Invitations activées, expirées ou annulées.</p>
+
+<div id="invites"></div></details></section></div></main>
 
 <script type="module">
 
@@ -150,7 +158,7 @@ if(ok!==true)throw Error('Modification non confirmée');await load();
 
 function member(m){
 
-const card=el($('members'),'div','','item');
+const card=el($(m.enabled&&!expired(m.expires_at)?'members':'inactive'),'div','','item');
 
 el(card,'strong',m.email||m.user_id);
 
@@ -188,9 +196,9 @@ if(confirm('Nouvelle fin : '+date(end)+' — confirmer ?'))await manage(m,true,e
 
 function invite(i){
 
-const card=el($('invites'),'div','','item');
-
 const state=i.used_at?'Activée':i.revoked_at?'Annulée':expired(i.expires_at)?'Expirée':'En attente';
+
+const card=el($(state==='En attente'?'pending':'invites'),'div','','item');
 
 el(card,'strong',state);el(card,'p',programs(i.programmes));
 
@@ -214,15 +222,17 @@ async function load(){
 
 $('refresh').disabled=true;msg('listStatus','Chargement…');
 
-$('members').replaceChildren();$('invites').replaceChildren();
+for(const id of ['members','inactive','pending','invites'])$(id).replaceChildren();
 
 try{await check();const [m,i]=await Promise.all([rpc('jf_training_list_members'),rpc('jf_training_list_invites')]);
 
 const members=m.filter(x=>x.role==='member');
 
-if(!members.length)el($('members'),'p','Aucun membre.');else members.forEach(member);
+members.forEach(member);
 
-if(!i.length)el($('invites'),'p','Aucune invitation.');else i.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).forEach(invite);
+i.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).forEach(invite);
+
+for(const id of ['members','inactive','pending','invites'])if(!$(id).children.length)el($(id),'p','Aucun élément.','small');
 
 msg('listStatus',members.length+' membre(s)');
 
