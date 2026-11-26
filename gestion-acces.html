@@ -108,11 +108,7 @@ label{font-weight:650}.small{color:#52667d;font-size:13px;line-height:1.5}
 
 <section class="card"><h2>Membres désactivés ou expirés</h2><div id="inactive"></div></section>
 
-<section class="card"><details><summary style="font-weight:700;cursor:pointer">Historique des invitations</summary>
-
-<p class="small">Invitations activées, expirées ou annulées.</p>
-
-<div id="invites"></div></details></section></div></main>
+</div></main>
 
 <script type="module">
 
@@ -180,6 +176,20 @@ if(m.enabled)button(actions,'Désactiver',async()=>{if(confirm('Désactiver cet 
 
 if(!m.enabled&&!expired(m.expires_at))button(actions,'Réactiver',async()=>{if(confirm('Réactiver cet accès ?'))await manage(m,true,m.expires_at);});
 
+if(state!=='Actif')button(actions,'Supprimer',async()=>{
+
+if(!confirm('Supprimer définitivement cette autorisation ? Le compte et les résultats ne sont pas directement supprimés.'))return;
+
+await check();
+
+const ok=await rpc('jf_training_delete_member',{p_user_id:m.user_id});
+
+if(ok!==true)throw Error('Suppression refusée ou non confirmée');
+
+await load();
+
+},'danger').style.cssText='flex-basis:100%;order:10';
+
 if(m.expires_at||!m.enabled)button(actions,state==='Actif'?'Prolonger':'Renouveler',async()=>{
 
 const v=prompt('Nombre de jours supplémentaires (1 à 3650) :','30');if(v===null)return;
@@ -198,7 +208,9 @@ function invite(i){
 
 const state=i.used_at?'Activée':i.revoked_at?'Annulée':expired(i.expires_at)?'Expirée':'En attente';
 
-const card=el($(state==='En attente'?'pending':'invites'),'div','','item');
+if(state!=='En attente')return;
+
+const card=el($('pending'),'div','','item');
 
 el(card,'strong',state);el(card,'p',programs(i.programmes));
 
@@ -222,7 +234,7 @@ async function load(){
 
 $('refresh').disabled=true;msg('listStatus','Chargement…');
 
-for(const id of ['members','inactive','pending','invites'])$(id).replaceChildren();
+for(const id of ['members','inactive','pending'])$(id).replaceChildren();
 
 try{await check();const [m,i]=await Promise.all([rpc('jf_training_list_members'),rpc('jf_training_list_invites')]);
 
@@ -232,7 +244,7 @@ members.forEach(member);
 
 i.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).forEach(invite);
 
-for(const id of ['members','inactive','pending','invites'])if(!$(id).children.length)el($(id),'p','Aucun élément.','small');
+for(const id of ['members','inactive','pending'])if(!$(id).children.length)el($(id),'p','Aucun élément.','small');
 
 msg('listStatus',members.length+' membre(s)');
 
